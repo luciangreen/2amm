@@ -1,0 +1,186 @@
+# Prolog-to-ANN Converter — Agent Requirements
+
+Oct 21, 2026 · @Lucian Green
+
+## Purpose and agent brief
+
+Build `prolog2ann`, a converter written entirely in SWI-Prolog that reads a Prolog program and emits an equivalent artificial neural network, also written in Prolog, whose fixpoint reproduces the program's answers.
+
+The network must be executable on its own (no dependency on the source program) and, optionally, trainable so the encoded knowledge can be refined from examples. The approach follows the neural-symbolic "core method" and CILP translation: each clause becomes a hidden AND-neuron, each atom an OR-neuron, and recurrence computes the immediate-consequence operator T\_P until it stabilises.
+
+**Brief for the GitHub agent:** implement the repository described below on a feature branch, open one pull request per milestone in section 8, keep CI green, and do not merge without the acceptance tests in section 7 passing. When a requirement is ambiguous, choose the simplest reading, record it in `docs/DECISIONS.md`, and continue.
+
+## Scope
+
+Version 1 converts function-free, finite-domain Prolog (Datalog with stratified negation), plus a bounded extension for lists and integers. Anything outside the subset must be rejected with a clear error, never silently approximated.
+
+| Feature | v1 status | Notes |
+| --- | --- | --- |
+| Facts and definite clauses | Required | Ground or with variables over a finite domain |
+| Recursion (direct and mutual) | Required | Handled by recurrent output-to-input links |
+| Negation as failure `\+` | Required | Stratified programs only; reject non-stratified |
+| Conjunction, disjunction `;` in bodies | Required | Disjunction split into separate clauses |
+| Comparison on finite integer ranges (`<`, `=:=`) | Required | Pre-evaluated during grounding |
+| `is/2` arithmetic | Bounded | Only when the user supplies an integer range, e.g. `0..20` |
+| Lists and compound terms | Bounded | Only up to a user-set depth or length |
+| Cut `!`, `assert`, `retract`, I/O, `findall` | Out of scope | Reject with error code `unsupported_construct` |
+| Unbounded recursion on terms (e.g. infinite `nat/1`) | Out of scope | Reject; suggest a domain bound |
+| Probabilistic or fuzzy clauses | Out of scope | Candidate for v2 |
+
+## Translation model
+
+The converter is a fixed pipeline of five stages; each stage is a separate module with its own tests.
+
+1. **Parse** — read clauses with `read_term/3`, keeping variable names and source line numbers for error messages.
+2. **Normalise** — split disjunctions, move comparisons and arithmetic to the end of bodies, check stratification of negation.
+3. **Ground** — instantiate variables over the Herbrand base restricted by the domain file, pre-evaluating comparisons and `is/2`; drop clauses whose built-ins fail.
+4. **Translate** — map ground clauses to neurons and weights using the rules below.
+5. **Emit** — write the network as a Prolog module plus an optional JSON export.
+
+| Program element | Network element | Weights and threshold (step mode) |
+| --- | --- | --- |
+| Ground atom `A` | Input neuron `in(A)` and output neuron `out(A)` | Output: threshold 0.5 (OR) |
+| Clause `A :- B1..Bp, \+C1..\+Cn` | Hidden neuron `h(ClauseId)` | +1 from each `in(Bi)`, −1 from each `in(Cj)`, threshold p − 0.5 (AND) |
+| Clause to head | Link `h(ClauseId)` → `out(A)` | +1 |
+| Fact `A.` | Hidden neuron with no inputs | Bias so it always fires |
+| Recursion | Recurrent link `out(A)` → `in(A)` | +1, applied once per time step |
+
+In **sigmoid mode** all weights are scaled by W and thresholds by the same factor. The converter must compute the minimum W from the CILP bound (d'Avila Garcez and Zaverucha, 1999) given the maximum clause fan-in, refuse a user-supplied W below it, and log the value chosen. The agent must verify the formula against the paper before implementing it.
+
+Negated atoms are evaluated stratum by stratum: the network for stratum k runs to its fixpoint before stratum k+1 reads it, which keeps negation-as-failure semantics exact.
+
+## Functional requirements
+
+Each requirement has an ID so tests and commits can reference it.
+
+| ID | Requirement |
+| --- | --- |
+| FR-1 | Accept a `.pl` source file and an optional domain file declaring finite types, e.g. `domain(person, [ann, bob, cy]).` and `range(n, 0, 20).` |
+| FR-2 | Reject unsupported constructs with error term `error(unsupported_construct(Construct), file(F, Line))` |
+| FR-3 | Detect non-stratified negation and report the cycle of predicates involved |
+| FR-4 | Ground the program and report the Herbrand base size; abort above a configurable limit (default 10,000 atoms) |
+| FR-5 | Generate a network in step mode (exact) or sigmoid mode (trainable), selected by flag |
+| FR-6 | Emit the network as a standalone Prolog module that loads without the source program |
+| FR-7 | Provide `ann_query(+Goal, -Truth)` on the emitted network, answering for any ground goal in the Herbrand base |
+| FR-8 | Provide `ann_query_all(+Pattern, -Solutions)` that returns every ground instance whose output neuron is active |
+| FR-9 | Run the network to a fixpoint and stop after a configurable step limit (default: Herbrand base size + 1) |
+| FR-10 | Provide `ann_train/3` (sigmoid mode) using backpropagation on example atoms labelled true or false |
+| FR-11 | Provide `ann_extract/2` that reads back a Prolog program from a step-mode network, for round-trip checks |
+| FR-12 | Keep a traceability map from each neuron to the source clause, file and line |
+| FR-13 | Export the network to JSON (neurons, edges, weights, thresholds) for use outside Prolog |
+
+## Network representation and runtime
+
+The emitted network is plain Prolog facts plus a small runtime library, so it can be read, diffed and versioned like source code.
+
+```prolog
+:- module(net_ancestor, [ann_query/2, ann_query_all/2]).
+:- use_module(library(prolog2ann/runtime)).
+
+net_meta(mode(step), source('ancestor.pl'), created('2026-10-21')).
+
+% neuron(Id, Layer, Activation, Threshold)
+neuron(in(parent(ann,bob)),       input,  linear, 0).
+neuron(h(c3_1),                   hidden, step,   1.5).
+neuron(out(ancestor(ann,cy)),     output, step,   0.5).
+
+% edge(From, To, Weight)
+edge(in(parent(ann,bob)),   h(c3_1), 1.0).
+edge(in(ancestor(bob,cy)),  h(c3_1), 1.0).
+edge(h(c3_1), out(ancestor(ann,cy)), 1.0).
+recurrent(out(ancestor(ann,cy)), in(ancestor(ann,cy))).
+
+% trace(NeuronId, ClauseId, File, Line)
+trace(h(c3_1), c3, 'ancestor.pl', 4).
+```
+
+- The runtime stores activations in an association list or `library(assoc)`, never with `assert/retract`, so queries are re-entrant.
+- Activation functions supported: `step`, `sigmoid`, `tanh` (bipolar, as in CILP), `linear`.
+- Each run returns the step count and whether a fixpoint was reached; a non-converging run raises `error(no_fixpoint(Steps), _)`.
+- Weights are floats; trained networks are written back with `ann_save/2` in the same format.
+
+## Repository layout, CLI and API
+
+```text
+prolog2ann/
+├── pack.pl                  % SWI-Prolog pack metadata
+├── prolog/prolog2ann/
+│   ├── parse.pl
+│   ├── normalise.pl
+│   ├── ground.pl
+│   ├── translate.pl
+│   ├── emit.pl
+│   ├── runtime.pl           % ann_query/2, fixpoint loop
+│   ├── train.pl             % backpropagation
+│   └── extract.pl           % network -> program
+├── bin/prolog2ann.pl        % CLI entry point
+├── examples/                % input programs + domain files
+├── test/                    % plunit suites, one per module
+├── docs/ (README, DESIGN.md, DECISIONS.md)
+└── .github/workflows/ci.yml
+```
+
+CLI:
+
+```text
+swipl bin/prolog2ann.pl convert examples/ancestor.pl \
+      --domain examples/ancestor_domain.pl \
+      --mode step|sigmoid  --weight auto|<float> \
+      --out build/net_ancestor.pl  [--json build/net_ancestor.json]
+swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, X)"
+swipl bin/prolog2ann.pl verify examples/ancestor.pl build/net_ancestor.pl
+```
+
+Library API (exported from `prolog2ann`): `convert_file/3`, `convert_clauses/3`, `ann_query/2`, `ann_query_all/2`, `ann_train/3`, `ann_extract/2`, `ann_save/2`, `ann_verify/3`. Every exported predicate has a PlDoc comment with modes and an example.
+
+## Testing and acceptance criteria
+
+The core acceptance test is equivalence: for every atom in the grounded Herbrand base, the step-mode network's fixpoint must match what SWI-Prolog proves from the source program.
+
+| Example program | What it exercises | Pass condition |
+| --- | --- | --- |
+| `ancestor.pl` (parent/ancestor, 8 people) | Recursion, joins | 100% atom agreement |
+| `reach.pl` (graph reachability, cyclic graph) | Recursion through cycles | 100% agreement, fixpoint within base size + 1 steps |
+| `even_odd.pl` (0..20) | Mutual recursion, bounded integers | 100% agreement |
+| `xor.pl` | Negation, non-linearly separable logic | 100% agreement |
+| `flies.pl` (birds, penguins) | Default reasoning with `\+` | 100% agreement |
+| `win.pl` (non-stratified game) | Stratification check | Rejected with the predicate cycle reported |
+| `cut.pl` | Unsupported construct | Rejected with `unsupported_construct(!)` and line number |
+
+- [ ] Unit tests in plunit for each module; at least one test per FR ID.
+- [ ] Sigmoid mode with auto W agrees with step mode on all examples when outputs are thresholded at 0.
+- [ ] Round trip: `ann_extract/2` of a step-mode network yields a program with the same least model.
+- [ ] Training test: corrupt one rule in `flies.pl`, train on 20 labelled atoms, and recover 100% agreement on the held-out atoms.
+- [ ] Property test: 200 random Datalog programs (≤ 6 predicates, ≤ 5 constants) all pass equivalence.
+- [ ] CI runs on SWI-Prolog 9.x stable on Ubuntu, with the full suite under 5 minutes.
+
+## Non-functional requirements, agent workflow and milestones
+
+**Non-functional**
+
+- Pure SWI-Prolog 9.x; no foreign libraries, Python or external ML frameworks.
+- Conversion of a 1,000-atom Herbrand base completes in under 10 seconds on a CI runner.
+- Deterministic output: the same input and flags produce a byte-identical network file.
+- All predicates documented with PlDoc; code passes `check/0` with no warnings.
+- MIT licence; README with a 5-minute quickstart using `ancestor.pl`.
+
+**Agent workflow**
+
+- Work on branches named `m<N>-<topic>`; one PR per milestone, linked to a tracking issue.
+- Each PR description lists the FR IDs covered and pastes the test summary.
+- Never weaken or delete a failing acceptance test to get CI green; flag it in the PR instead.
+- Record design choices (e.g. how facts are biased, the W formula used) in `docs/DECISIONS.md`.
+
+**Milestones** (each must pass its tests before the next starts)
+
+1. **M1 — Skeleton:** repo layout, CI, parser and normaliser, FR-1 to FR-3.
+2. **M2 — Grounding:** domain files, built-in pre-evaluation, size limit, FR-4.
+3. **M3 — Step-mode network:** translator, emitter, runtime, queries, FR-5 to FR-9, FR-12; equivalence tests pass.
+4. **M4 — Sigmoid mode and training:** CILP weight bound, backpropagation, FR-10.
+5. **M5 — Extraction and export:** `ann_extract/2`, JSON, property tests, FR-11 and FR-13.
+6. **M6 — Release:** docs, examples, pack published as `prolog2ann` v1.0.0.
+
+**Open questions**
+
+- Should v1 also accept a goal-directed mode that builds only the sub-network relevant to one query?
+- Is a stable-model (answer set) mode for non-stratified programs wanted in v2?
