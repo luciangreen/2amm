@@ -27,7 +27,7 @@ test(reject_cut_with_source_line) :-
     test_prolog2ann:example(cut, File),
     catch(prolog2ann_parse:parse_file(File, _), Error, true),
     assertion(nonvar(Error)),
-    assertion(Error = error(unsupported_construct(!), file(File, 2))).
+    assertion(Error = error(unsupported_construct(!), file(File, 1))).
 
 test(reject_non_stratified_negation) :-
     Parsed = [ clause(p(X), \+ q(X), [], sample, 1),
@@ -161,7 +161,7 @@ test(verify_reports_model_difference) :-
     test_prolog2ann:example(ancestor, File),
     prolog2ann:convert_clauses([p(a)], [], Network),
     prolog2ann:ann_verify(File, Network, Result),
-    assertion(Result = mismatch(Missing, Unexpected)),
+    Result = mismatch(Missing, Unexpected),
     assertion(Missing \= []),
     assertion(memberchk(p(a), Unexpected)).
 

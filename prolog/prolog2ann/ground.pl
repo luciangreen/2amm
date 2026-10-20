@@ -66,7 +66,8 @@ ground_program(Normalised, DomainValues, GroundClauses, Limit, Atoms) :-
     ).
 
 require_finite_universe(Clauses, []) :-
-    member(normal(Head, Positive, Negative, Builtins, _, _, _), Clauses),
+    member(ground_clause(Head, Positive, Negative, Builtins, _, _, _, _),
+           Clauses),
     term_variables(Head-Positive-Negative-Builtins, [_|_]),
     !,
     throw(error(finite_domain_required, _)).
@@ -74,7 +75,7 @@ require_finite_universe(_, _).
 
 source_values(Clauses, Values) :-
     findall(Value,
-            ( member(normal(H, Pos, Neg, Builtins, _, _, _), Clauses),
+            ( member(ground_clause(H, Pos, Neg, Builtins, _, _, _, _), Clauses),
               ( sub_term(Value, H)
               ; member(Goal, Pos), sub_term(Value, Goal)
               ; member(Goal, Neg), sub_term(Value, Goal)
