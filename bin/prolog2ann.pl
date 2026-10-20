@@ -27,7 +27,7 @@ run([verify, _Source, _Network]) :-
     throw(error(not_implemented(verify), _)).
 run(_) :-
     format(user_error,
-           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
+           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--steps N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
            []),
     halt(2).
 
