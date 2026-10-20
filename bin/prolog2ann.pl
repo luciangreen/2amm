@@ -27,7 +27,7 @@ run([verify, _Source, _Network]) :-
     throw(error(not_implemented(verify), _)).
 run(_) :-
     format(user_error,
-           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
+           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
            []),
     halt(2).
 
@@ -41,6 +41,9 @@ parse_options(['--module', Name|Rest], [module(Module)|Options]) :-
 parse_options(['--mode', ModeString|Rest], [mode(Mode)|Options]) :-
     !, text_atom(ModeString, Mode), parse_options(Rest, Options).
 parse_options(['--limit', LimitString|Rest], [limit(Limit)|Options]) :-
+    !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
+    parse_options(Rest, Options).
+parse_options(['--step-limit', LimitString|Rest], [step_limit(Limit)|Options]) :-
     !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
     parse_options(Rest, Options).
 parse_options([Unknown|_], _) :-

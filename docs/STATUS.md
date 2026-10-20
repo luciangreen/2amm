@@ -13,7 +13,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-6 | Partial — emits a module independent of source, with a generic package runtime dependency |
 | FR-7 | Implemented in emitted modules for ground goals |
 | FR-8 | Implemented in emitted modules for matching active atoms |
-| FR-9 | Partial — fixpoint evaluation and per-stratum default limit; no CLI limit for runtime steps |
+| FR-9 | Partial — fixpoint evaluation, default and configurable per-network step limits (`--step-limit`); no full equivalence verification |
 | FR-10 | Not implemented — sigmoid backpropagation |
 | FR-11 | Not implemented — program extraction |
 | FR-12 | Partial — emits basic source trace facts; no complete neuron-to-clause traceability yet |
@@ -26,8 +26,9 @@ not yet satisfy the v1 acceptance criteria in full.
    diagnostics, exact stratification diagnostics, and source equivalence.
 2. Replace symbolic ground-rule execution with the explicit weighted
    input/hidden/output neuron model, recurrent links, and complete trace map.
-3. Add runtime step-limit controls, a complete `ann_verify/3`, and CLI support
-   for verification and JSON output.
+3. Complete `ann_verify/3` and add CLI support for verification and JSON
+   output. Per-network runtime step limits are implemented; source-equivalence
+   checking is not.
 4. Verify the sigmoid/CILP formula against the cited paper and implement
    sigmoid/tanh modes and training only after recording the exact assumptions.
 5. Implement step-network extraction and JSON export.
@@ -35,7 +36,7 @@ not yet satisfy the v1 acceptance criteria in full.
    randomized property tests, CI, PlDoc coverage, and release/pack metadata
    checks before claiming M1–M6 complete.
 
-## Tests to run now
+## Tests and examples to run now
 
 ```sh
 swipl -q -s test/run_tests.pl
@@ -45,6 +46,11 @@ swipl bin/prolog2ann.pl convert examples/ancestor.pl \
   --out build/net_ancestor.pl --module net_ancestor
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
 ```
+
+To inspect a deliberately limited runtime run, convert with
+`--step-limit 1`, then call the generated module's `ann_run/3`. A run that
+does not converge within that limit reports `Reached = false`; `ann_query/2`
+and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
