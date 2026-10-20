@@ -21,6 +21,8 @@ convert_file(Source, Options, Network) :-
     ( Mode == step -> true ; throw(error(unsupported_mode(Mode), _)) ),
     option_value(limit, Options, 10000, Limit),
     must_be(positive_integer, Limit),
+    option_value(step_limit, Options, none, StepLimit),
+    ( StepLimit == none -> true ; must_be(positive_integer, StepLimit) ),
     option_value(domain, Options, none, DomainFile),
     parse_file(Source, Parsed),
     normalise(Parsed, Normalised),
@@ -29,7 +31,7 @@ convert_file(Source, Options, Network) :-
     translate(Ground, Atoms, Network),
     (   option_value(out, Options, none, Output)
     ->  option_value(module, Options, prolog2ann_generated, Module),
-        emit_network(Output, Module, Network)
+        emit_network(Output, Module, Network, StepLimit)
     ;   true
     ).
 

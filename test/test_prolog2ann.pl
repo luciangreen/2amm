@@ -115,6 +115,28 @@ test(convert_file_creates_output) :-
         ),
         ( exists_file(Output) -> delete_file(Output) ; true )).
 
+test(emitted_runtime_step_limit) :-
+    test_prolog2ann:example(ancestor, File),
+    test_prolog2ann:example(ancestor_domain, Domain),
+    tmp_file(prolog2ann, Output),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann:convert_file(
+              File,
+              [domain(Domain), out(Output), module(test_limited), step_limit(1)],
+              _),
+          setup_call_cleanup(
+              load_files(Output, []),
+              ( test_limited:ann_run(_, Steps, Reached),
+                assertion(Steps == 1),
+                assertion(Reached == false),
+                catch(test_limited:ann_query(ancestor(ann, dee), _), Error, true),
+                assertion(Error = error(no_fixpoint(1), _))
+              ),
+              unload_file(Output))
+        ),
+        ( exists_file(Output) -> delete_file(Output) ; true )).
+
 :- end_tests(prolog2ann).
 
 example(Name, File) :-

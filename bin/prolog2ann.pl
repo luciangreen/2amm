@@ -43,6 +43,10 @@ parse_options(['--mode', ModeString|Rest], [mode(Mode)|Options]) :-
 parse_options(['--limit', LimitString|Rest], [limit(Limit)|Options]) :-
     !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
     parse_options(Rest, Options).
+parse_options(['--steps', StepLimitString|Rest], [step_limit(StepLimit)|Options]) :-
+    !, text_string(StepLimitString, StepLimitText),
+    number_string(StepLimit, StepLimitText),
+    parse_options(Rest, Options).
 parse_options([Unknown|_], _) :-
     throw(error(unknown_option(Unknown), _)).
 

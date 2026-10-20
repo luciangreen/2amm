@@ -13,7 +13,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-6 | Partial — emits a module independent of source, with a generic package runtime dependency |
 | FR-7 | Implemented in emitted modules for ground goals |
 | FR-8 | Implemented in emitted modules for matching active atoms |
-| FR-9 | Partial — fixpoint evaluation and per-stratum default limit; no CLI limit for runtime steps |
+| FR-9 | Partial — fixpoint evaluation with configurable per-stratum runtime step limit (`--steps`); CLI verification remains unimplemented |
 | FR-10 | Not implemented — sigmoid backpropagation |
 | FR-11 | Not implemented — program extraction |
 | FR-12 | Partial — emits basic source trace facts; no complete neuron-to-clause traceability yet |
@@ -26,14 +26,13 @@ not yet satisfy the v1 acceptance criteria in full.
    diagnostics, exact stratification diagnostics, and source equivalence.
 2. Replace symbolic ground-rule execution with the explicit weighted
    input/hidden/output neuron model, recurrent links, and complete trace map.
-3. Add runtime step-limit controls, a complete `ann_verify/3`, and CLI support
-   for verification and JSON output.
+3. Complete `ann_verify/3` and add CLI support for verification and JSON output.
 4. Verify the sigmoid/CILP formula against the cited paper and implement
    sigmoid/tanh modes and training only after recording the exact assumptions.
 5. Implement step-network extraction and JSON export.
 6. Add the remaining acceptance examples, round-trip and training tests,
-   randomized property tests, CI, PlDoc coverage, and release/pack metadata
-   checks before claiming M1–M6 complete.
+   randomized property tests, CI, complete PlDoc coverage, and release/pack
+   metadata checks before claiming M1–M6 complete.
 
 ## Tests to run now
 
@@ -45,6 +44,10 @@ swipl bin/prolog2ann.pl convert examples/ancestor.pl \
   --out build/net_ancestor.pl --module net_ancestor
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
 ```
+
+Use `--steps N` to change the per-stratum runtime limit (the default is the
+grounded atom count + 1); use `--limit N` for the maximum grounded base size.
+See [`README.md`](README.md) for the complete currently runnable test commands.
 
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
