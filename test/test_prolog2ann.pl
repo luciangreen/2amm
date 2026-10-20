@@ -139,6 +139,32 @@ test(configured_runtime_step_limit) :-
           ( exists_file(Output) -> delete_file(Output) ; true )
         )).
 
+test(verify_equivalent_emitted_network) :-
+    test_prolog2ann:example(ancestor, File),
+    test_prolog2ann:example(ancestor_domain, Domain),
+    tmp_file(prolog2ann, Output),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann:convert_file(
+              File,
+              [domain(Domain), out(Output), module(verified_ancestor)],
+              _),
+          load_files(Output, []),
+          prolog2ann:ann_verify(File, verified_ancestor, Result),
+          assertion(Result == equivalent)
+        ),
+        ( unload_file(Output),
+          ( exists_file(Output) -> delete_file(Output) ; true )
+        )).
+
+test(verify_reports_model_difference) :-
+    test_prolog2ann:example(ancestor, File),
+    prolog2ann:convert_clauses([p(a)], [], Network),
+    prolog2ann:ann_verify(File, Network, Result),
+    assertion(Result = mismatch(Missing, Unexpected)),
+    assertion(Missing \= []),
+    assertion(memberchk(p(a), Unexpected)).
+
 :- end_tests(prolog2ann).
 
 example(Name, File) :-

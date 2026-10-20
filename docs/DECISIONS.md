@@ -14,6 +14,13 @@ Nested compound and list arguments are rejected rather than partially
 grounded. The v1 brief allows those terms only with a configured depth/length
 bound, and no such bound is implemented yet.
 
+## Verification universe
+
+`ann_verify/3` does not take a domain file. It derives values from the network's
+ground atom base and combines them with constants in the source before
+grounding. This checks the source against the exact finite base represented by
+the generated network without requiring the original domain file.
+
 ## Sigmoid weight bound
 
 Sigmoid mode is not enabled until its bound can be attributed accurately.
