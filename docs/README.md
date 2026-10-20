@@ -54,6 +54,9 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
   `--out FILE [--module NAME]`
 - `query NETWORK.pl "ground_goal"`
 
+The CLI also recognizes `verify SOURCE NETWORK.pl`, but verification is a
+placeholder and currently raises `error(not_implemented(verify), _)`.
+
 The generated module exports `ann_query/2`, `ann_query_all/2`, and
 `ann_run/3`, along with the inspectable neuron, edge, recurrent-link, and trace
 facts. The library entry point exports `convert_file/3`, `convert_clauses/3`,
