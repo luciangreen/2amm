@@ -48,7 +48,7 @@ convert_clauses(Clauses, Options, Network) :-
 
 %! ann_verify(+Source, +Network, -Result) is det.
 %
-% Compare the generated network against the source using its known atoms.
+% Placeholder; raises not_implemented until source equivalence checking lands.
 ann_verify(_, _, _) :-
     throw(error(not_implemented(ann_verify/3), _)).
 
