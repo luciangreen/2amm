@@ -8,12 +8,13 @@
 
 :- use_module('../prolog/prolog2ann').
 
-main(Arguments) :-
+main :-
+    current_prolog_flag(argv, Arguments),
     catch(run(Arguments), Error, (print_message(error, Error), halt(2))).
 
 run([convert, Source|Arguments]) :-
     parse_options(Arguments, Options),
-    prolog2ann:convert_file(Source, Options, network(Atoms, _, _, _)),
+    prolog2ann:convert_file(Source, Options, network(Atoms, _, _, _, _, _, _)),
     length(Atoms, Size),
     format('Converted ~w atoms to step-mode network (~d atoms).~n', [Source, Size]).
 run([query, NetworkFile, GoalText]) :-
@@ -31,20 +32,30 @@ run(_) :-
     halt(2).
 
 parse_options([], []).
-parse_options([--domain, File|Rest], [domain(File)|Options]) :-
+parse_options(['--domain', File|Rest], [domain(File)|Options]) :-
     !, parse_options(Rest, Options).
-parse_options([--out, File|Rest], [out(File)|Options]) :-
+parse_options(['--out', File|Rest], [out(File)|Options]) :-
     !, parse_options(Rest, Options).
-parse_options([--module, Name|Rest], [module(Module)|Options]) :-
-    !, atom_string(Module, Name), parse_options(Rest, Options).
-parse_options([--mode, ModeString|Rest], [mode(Mode)|Options]) :-
-    !, atom_string(Mode, ModeString), parse_options(Rest, Options).
-parse_options([--limit, LimitString|Rest], [limit(Limit)|Options]) :-
-    !, number_string(Limit, LimitString), parse_options(Rest, Options).
+parse_options(['--module', Name|Rest], [module(Module)|Options]) :-
+    !, text_atom(Name, Module), parse_options(Rest, Options).
+parse_options(['--mode', ModeString|Rest], [mode(Mode)|Options]) :-
+    !, text_atom(ModeString, Mode), parse_options(Rest, Options).
+parse_options(['--limit', LimitString|Rest], [limit(Limit)|Options]) :-
+    !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
+    parse_options(Rest, Options).
 parse_options([Unknown|_], _) :-
     throw(error(unknown_option(Unknown), _)).
 
 network_module(File, Module) :-
-    open(File, read, Stream),
-    read_term(Stream, (:- module(Module, _)), []),
-    close(Stream).
+    setup_call_cleanup(
+        open(File, read, Stream),
+        ( read_term(Stream, Directive, []),
+          Directive = (:- module(Module, _))
+        ),
+        close(Stream)).
+
+text_atom(Value, Atom) :-
+    ( atom(Value) -> Atom = Value ; atom_string(Atom, Value) ).
+
+text_string(Value, String) :-
+    ( string(Value) -> String = Value ; atom_string(Value, String) ).

@@ -74,14 +74,19 @@ stratify(Clauses, Strata) :-
              )), Dependencies),
     initial_strata(Heads, Initial),
     relax_strata(Count, Dependencies, Initial, Strata),
+    satisfies_strata(Dependencies, Strata),
     !.
 stratify(Clauses, _) :-
-    member(normal(_, _, Neg, _, _, File, Line), Clauses),
-    Neg \= [],
-    findall(PI, (member(normal(H, _, _, _, _, _, _), Clauses),
-                 predicate_indicator(H, PI)), PIs0),
-    sort(PIs0, PIs),
-    throw(error(non_stratified_negation(PIs), file(File, Line))).
+    findall(dep(HeadPI, BodyPI, Sign, File, Line),
+            ( member(normal(H, Pos, Neg, _, _, File, Line), Clauses),
+              predicate_indicator(H, HeadPI),
+              ( member(B, Pos), predicate_indicator(B, BodyPI), Sign = positive
+              ; member(B, Neg), predicate_indicator(B, BodyPI), Sign = negative
+              )), Dependencies),
+    member(dep(Head, Body, negative, File, Line), Dependencies),
+    dependency_path(Body, Head, Dependencies, [Body], Path),
+    sort([Head, Body|Path], Cycle),
+    throw(error(non_stratified_negation(Cycle), file(File, Line))).
 
 initial_strata([], []).
 initial_strata([PI|Rest], [PI-0|Strata]) :-
@@ -111,7 +116,26 @@ relax_once([dep(Head, Body, Sign, _, _)|Rest], Current, Strata, Changed) :-
         Changed0 = false
     ),
     relax_once(Rest, Updated, Strata, Changed1),
-    (Changed0 == true ; Changed1 == true -> Changed = true ; Changed = false).
+    (   (Changed0 == true ; Changed1 == true)
+    ->  Changed = true
+    ;   Changed = false
+    ).
+
+satisfies_strata([], _).
+satisfies_strata([dep(Head, Body, Sign, _, _)|Rest], Strata) :-
+    memberchk(Head-HeadLevel, Strata),
+    (memberchk(Body-BodyLevel, Strata) -> true ; BodyLevel = 0),
+    (Sign == negative -> Required is BodyLevel + 1 ; Required = BodyLevel),
+    HeadLevel >= Required,
+    satisfies_strata(Rest, Strata).
+
+dependency_path(From, To, _, _, [From]) :-
+    From == To,
+    !.
+dependency_path(From, To, Dependencies, Seen, [From|Path]) :-
+    member(dep(From, Next, _, _, _), Dependencies),
+    \+ memberchk(Next, Seen),
+    dependency_path(Next, To, Dependencies, [Next|Seen], Path).
 
 replace_level(PI, Level, [PI-_|Rest], [PI-Level|Rest]) :- !.
 replace_level(PI, Level, [Other|Rest], [Other|Updated]) :-

@@ -11,17 +11,19 @@
 % Query a generated network for a ground atom; Truth is true or false.
 ann_query(Module, Goal, Truth) :-
     ( ground(Goal) -> true ; throw(error(instantiation_error, _)) ),
-    run_network(Module, Atoms, _, true),
+    run_network(Module, Atoms, Steps, Reached),
+    ( Reached == true -> true ; throw(error(no_fixpoint(Steps), _)) ),
     ( memberchk(Goal, Atoms) -> Truth = true ; Truth = false ).
 
 %! ann_query_all(+Module, +Pattern, -Solutions) is det.
 %
 % Return all active ground atoms matching Pattern, in standard order.
 ann_query_all(Module, Pattern, Solutions) :-
-    run_network(Module, Atoms, _, true),
+    run_network(Module, Atoms, Steps, Reached),
+    ( Reached == true -> true ; throw(error(no_fixpoint(Steps), _)) ),
     findall(Atom,
             ( member(Atom, Atoms),
-              copy_term(Pattern-Atom, PatternCopy-Atom),
+              copy_term(Pattern, PatternCopy),
               PatternCopy = Atom
             ),
             Solutions0),
@@ -41,7 +43,8 @@ run_network(Module, Atoms, Steps, Reached) :-
     Atoms = Model.
 
 module_step_limit(Module, Base, Limit) :-
-    (   Module:network_step_limit(Configured)
+    (   current_predicate(Module:network_step_limit/1),
+        Module:network_step_limit(Configured)
     ->  Limit = Configured
     ;   length(Base, BaseSize),
         Limit is BaseSize + 1

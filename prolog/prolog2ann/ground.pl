@@ -47,6 +47,7 @@ ground_program(Normalised, DomainValues, GroundClauses, Limit, Atoms) :-
     source_values(Normalised, SourceValues),
     append(DomainValues, SourceValues, Values),
     sort(Values, Universe),
+    require_finite_universe(Normalised, Universe),
     findall(Ground,
             ( member(Clause, Normalised),
               ground_clause(Clause, Universe, Ground)
@@ -63,6 +64,13 @@ ground_program(Normalised, DomainValues, GroundClauses, Limit, Atoms) :-
     ->  true
     ;   throw(error(herbrand_base_limit(Size, Limit), _))
     ).
+
+require_finite_universe(Clauses, []) :-
+    member(normal(Head, Positive, Negative, Builtins, _, _, _), Clauses),
+    term_variables(Head-Positive-Negative-Builtins, [_|_]),
+    !,
+    throw(error(finite_domain_required, _)).
+require_finite_universe(_, _).
 
 source_values(Clauses, Values) :-
     findall(Value,

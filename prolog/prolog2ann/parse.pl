@@ -25,8 +25,8 @@ read_clauses(Stream, File, Clauses) :-
 
 validate_clause((Head :- Body), File, Line, Head, Body) :-
     !,
-    validate_head(Head, File, Line),
-    validate_goal(Body, File, Line).
+    validate_goal(Body, File, Line),
+    validate_head(Head, File, Line).
 validate_clause(Head, File, Line, Head, true) :-
     validate_head(Head, File, Line).
 
@@ -34,7 +34,8 @@ validate_head(Head, File, Line) :-
     (   callable(Head),
         Head \= (_ :- _),
         functor(Head, Name, Arity),
-        \+ reserved_head(Name, Arity)
+        \+ reserved_head(Name, Arity),
+        simple_predicate_arguments(Head)
     ->  true
     ;   throw(error(unsupported_construct(Head), file(File, Line)))
     ).
@@ -48,6 +49,12 @@ validate_goal((A ; B), File, Line) :-
     validate_goal(A, File, Line),
     validate_goal(B, File, Line).
 validate_goal(\+ Goal, File, Line) :-
+    (   Goal = (_, _)
+    ;   Goal = (_ ; _)
+    ),
+    !,
+    throw(error(unsupported_construct(negated_compound_goal), file(File, Line))).
+validate_goal(\+ Goal, File, Line) :-
     !,
     validate_goal(Goal, File, Line).
 validate_goal(Goal, File, Line) :-
@@ -59,7 +66,9 @@ validate_goal(Goal, File, Line) :-
     ->  true
     ;   predicate_property(system:Goal, built_in)
     ->  throw(error(unsupported_construct(Goal), file(File, Line)))
-    ;   true
+    ;   simple_predicate_arguments(Goal)
+    ->  true
+    ;   throw(error(unsupported_construct(compound_term), file(File, Line)))
     ),
     !.
 validate_goal(Goal, File, Line) :-
@@ -93,3 +102,13 @@ supported_builtin((=\=), 2).
 supported_builtin((=), 2).
 supported_builtin((\=), 2).
 supported_builtin(is, 2).
+
+simple_predicate_arguments(Term) :-
+    Term =.. [_|Arguments],
+    maplist(simple_argument, Arguments).
+
+simple_argument(Argument) :-
+    var(Argument),
+    !.
+simple_argument(Argument) :-
+    atomic(Argument).

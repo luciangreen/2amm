@@ -4,13 +4,13 @@
             ann_verify/3
           ]).
 
-:- use_module(prolog2ann/parse).
-:- use_module(prolog2ann/normalise).
-:- use_module(prolog2ann/ground).
-:- use_module(prolog2ann/translate).
-:- use_module(prolog2ann/emit).
+:- use_module('prolog2ann/parse').
+:- use_module('prolog2ann/normalise').
+:- use_module('prolog2ann/ground').
+:- use_module('prolog2ann/translate').
+:- use_module('prolog2ann/emit').
 :- use_module(library(lists)).
-:- use_module(library(filesex)).
+:- use_module(library(error)).
 
 %! convert_file(+Source, +Options, -Network) is det.
 %
@@ -39,6 +39,8 @@ convert_file(Source, Options, Network) :-
 convert_clauses(Clauses, Options, Network) :-
     maplist(as_parsed_clause, Clauses, Parsed),
     normalise(Parsed, Normalised),
+    option_value(mode, Options, step, Mode),
+    ( Mode == step -> true ; throw(error(unsupported_mode(Mode), _)) ),
     option_value(domain_values, Options, [], DomainValues),
     option_value(limit, Options, 10000, Limit),
     ground_program(Normalised, DomainValues, Ground, Limit, Atoms),
@@ -47,7 +49,8 @@ convert_clauses(Clauses, Options, Network) :-
 %! ann_verify(+Source, +Network, -Result) is det.
 %
 % Compare the generated network against the source using its known atoms.
-ann_verify(_, _, error(verification_not_available)).
+ann_verify(_, _, _) :-
+    throw(error(not_implemented(ann_verify/3), _)).
 
 domain_values(none, []) :- !.
 domain_values(File, Values) :-
