@@ -66,6 +66,17 @@ test(translation_includes_weighted_neurons) :-
     assertion(memberchk(edge(hidden(2), out(q(a)), 1.0), Edges)),
     assertion(memberchk(recurrent(out(p(a)), in(p(a))), Recurrent)).
 
+test(neuron_traceability_covers_all_layers) :-
+    prolog2ann:convert_clauses([p(a), (q(X) :- p(X))],
+                               [domain_values([a])],
+                               network(_, _, _, Traces, Neurons, _, _)),
+    forall(member(neuron(Neuron, _, _, _), Neurons),
+           assertion(member(trace(Neuron, _, '<memory>', 1), Traces))),
+    assertion(memberchk(trace(in(p(a)), 1, '<memory>', 1), Traces)),
+    assertion(memberchk(trace(out(p(a)), 1, '<memory>', 1), Traces)),
+    assertion(memberchk(trace(in(p(a)), 2, '<memory>', 1), Traces)),
+    assertion(memberchk(trace(out(q(a)), 2, '<memory>', 1), Traces)).
+
 test(stratified_negation_and_query) :-
     test_prolog2ann:example(flies, File),
     prolog2ann_parse:parse_file(File, Parsed),
@@ -183,7 +194,17 @@ test(export_json_network_representation) :-
           assertion(memberchk(_{neuron: "hidden(2)",
                                 clause: 2,
                                 file: "<memory>",
-                                line: 1},
+                               line: 1},
+                              Json.traces)),
+          assertion(memberchk(_{neuron: "in(p(a))",
+                               clause: 1,
+                               file: "<memory>",
+                               line: 1},
+                              Json.traces)),
+          assertion(memberchk(_{neuron: "out(q(a))",
+                               clause: 2,
+                               file: "<memory>",
+                               line: 1},
                               Json.traces))
         ),
         ( exists_file(Output) -> delete_file(Output) ; true )).

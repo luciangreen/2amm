@@ -14,9 +14,7 @@ translate(GroundClauses, Atoms,
     sort(Rules0, Rules),
     findall(Stratum, member(rule(_, _, _, Stratum), Rules), Strata0),
     sort(Strata0, Strata),
-    findall(trace(hidden(Id), Id, File, Line),
-            ( nth1(Id, GroundClauses, ground_clause(_, _, _, _, _, File, Line, _)) ),
-            Traces),
+    source_traces(GroundClauses, Traces),
     maplist(atom_neurons, Atoms, AtomNeurons),
     findall(neuron(hidden(Id), hidden, step, Threshold),
             ( nth1(Id, GroundClauses,
@@ -45,6 +43,23 @@ translate(GroundClauses, Atoms,
             HeadEdges),
     append([PositiveEdges, NegativeEdges, HeadEdges], Edges),
     findall(recurrent(out(Atom), in(Atom)), member(Atom, Atoms), Recurrent).
+
+source_traces(GroundClauses, Traces) :-
+    findall(trace(hidden(Id), Id, File, Line),
+            nth1(Id, GroundClauses,
+                 ground_clause(_, _, _, _, _, File, Line, _)),
+            HiddenTraces),
+    findall(trace(Neuron, Id, File, Line),
+            ( nth1(Id, GroundClauses,
+                   ground_clause(Head, Positive, Negative, _, _, File, Line, _)),
+              append([Head|Positive], Negative, Atoms0),
+              sort(Atoms0, ClauseAtoms),
+              member(Atom, ClauseAtoms),
+              member(Neuron, [in(Atom), out(Atom)])
+            ),
+            AtomTraces),
+    append(HiddenTraces, AtomTraces, Traces0),
+    sort(Traces0, Traces).
 
 atom_neurons(Atom, [neuron(in(Atom), input, linear, 0.0),
                     neuron(out(Atom), output, step, 0.5)]).
