@@ -23,6 +23,20 @@ atoms missing from the network and unexpected network atoms, and exits with
 status 1. The generated module uses the packaged `prolog2ann/runtime` library,
 but does not load or need the source program.
 
+The XOR acceptance example exercises finite grounding, equality, stratified
+negation, pattern queries, and source/network verification:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/xor.pl --mode step \
+  --out build/net_xor.pl --module net_xor
+swipl bin/prolog2ann.pl query build/net_xor.pl "xor(0, 1)"
+swipl bin/prolog2ann.pl query build/net_xor.pl "xor(0, 0)"
+swipl bin/prolog2ann.pl verify examples/xor.pl build/net_xor.pl
+```
+
+The first query returns `true`, the second returns `false`, and verification
+checks the complete finite least model.
+
 The cyclic reachability example can be converted and checked independently:
 
 ```sh
@@ -117,16 +131,22 @@ domain and source constants.
 ## Current limitations
 
 This is an in-progress subset of `pr1.txt`, not the v1 acceptance-complete
-converter. Nested compound/list terms, cut, dynamic database operations,
-I/O, `findall`/`bagof`/`setof`, and unsupported system built-ins are rejected.
-Only exact step mode is implemented. The emitted runtime computes the same
-stratified least-model closure symbolically from ground rules; the full
-explicit weighted-neuron encoding in `pr1.txt` is not finished.
+converter. The current finite universe is the union of source constants and
+values from `domain/2` and `range/3`; type labels are not used to constrain
+individual variables or predicate positions. Nested compound/list terms,
+cut, dynamic database operations, I/O, `findall`/`bagof`/`setof`, and unsupported
+system built-ins are rejected. Only exact step mode is implemented. Although
+translation emits inspectable neuron, edge, and recurrent-link facts, runtime
+evaluation computes stratified least-model closure from retained symbolic
+ground rules rather than evaluating those weighted facts.
 
-Sigmoid/tanh activation, the CILP weight-bound implementation, training,
-extraction, JSON export, and the complete acceptance and random-property suites
-are not implemented. Verification currently covers least-model agreement only
-for programs in the supported finite-domain subset. Consult
+Basic hidden-neuron source trace facts are emitted, but complete neuron-to-source
+traceability is not implemented. `ann_extract/2` and JSON export are implemented
+for the current step-mode schema; extraction returns represented ground rules,
+not original source text. Sigmoid/tanh activation, a verified CILP weight-bound
+implementation, and training are not implemented. Verification covers
+least-model agreement only for programs in the supported finite-domain subset.
+Consult
 [`STATUS.md`](STATUS.md) for the requirement-by-requirement list.
 
 ## Tests
@@ -143,11 +163,14 @@ mutual recursion over a bounded integer range, cyclic reachability through a
 fixpoint (including self-reachability), emitted-module queries and conversion
 output, JSON export and its network fields, the optional runtime step limit,
 source/network equivalence and mismatch reporting, and extraction round trips
-for recursion, stratified negation, and generated modules. Run all current
-PlUnit tests with the command above. The ancestor quickstart exercises
+for recursion, stratified negation, and generated modules, plus XOR equivalence
+and query results. Run all current PlUnit tests with the command above. The
+ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
 generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
 negation, bounded mutual recursion, and cyclic recursive closure respectively.
+The `xor` example exercises stratified negation and verifies all four input
+pairs through the finite least model.
 
 Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
@@ -157,7 +180,7 @@ that order. The current extraction API can be exercised from the Prolog top
 level after loading `prolog/prolog2ann.pl` and generating or converting a
 network: call `prolog2ann:ann_extract(Network, Clauses)` and then
 `prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
-More acceptance programs from `pr1.txt` (including XOR), sigmoid training, and
-randomized equivalence remain to be added. See
+Additional acceptance coverage, sigmoid training, and randomized equivalence
+remain to be added. See
 [`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
 the remaining milestones.
