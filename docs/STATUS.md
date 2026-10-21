@@ -16,7 +16,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-9 | Implemented for the supported subset — fixpoint evaluation, default and configurable per-network step limits (`--step-limit`), and source/network least-model comparison with `ann_verify/3` |
 | FR-10 | Not implemented — sigmoid backpropagation |
 | FR-11 | Implemented for step-mode `network/7` terms and loaded generated modules; extracts ground rules and supports round-trip conversion |
-| FR-12 | Partial — emits basic source trace facts; no complete neuron-to-clause traceability yet |
+| FR-12 | Implemented for the step-mode representation — traces input, hidden, and output neurons to represented ground clauses, with source file and line |
 | FR-13 | Implemented for the current step-mode schema — exports atoms, neurons, weighted edges, recurrent links, and traces via `--json` or `ann_export_json/2` |
 
 ## Remaining work
@@ -25,9 +25,8 @@ not yet satisfy the v1 acceptance criteria in full.
    current grounding universe is global. Implement bounded lists/compound terms
    and complete the required unsupported-syntax diagnostics.
 2. Replace symbolic ground-rule execution with evaluation of the explicit
-   weighted input/hidden/output neuron model and recurrent links. Complete
-   neuron-to-clause traceability; the JSON currently reports the available
-   network facts but does not implement this runtime change.
+   weighted input/hidden/output neuron model and recurrent links. The JSON
+   reports the network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
 4. Expand acceptance coverage beyond the current examples; add sigmoid/training
@@ -53,10 +52,11 @@ does not converge within that limit reports `Reached = false`; `ann_query/2`
 and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 
 The PlUnit suite also covers parser diagnostics, grounding limits, weighted
-translation, negation, XOR, mutual recursion over an integer range, JSON
-structure, step limits, equivalence/mismatch reporting, and extraction round
-trips for positive recursion, stratified negation, generated modules, and cyclic
-reachability. The cyclic example checks recursive self-reachability and that
+translation, input/hidden/output source traces, negation, XOR, mutual recursion
+over an integer range, JSON structure, step limits, equivalence/mismatch
+reporting, and extraction round trips for positive recursion, stratified
+negation, generated modules, and cyclic reachability. The cyclic example checks
+recursive self-reachability and that
 fixpoint evaluation completes within the default Herbrand-base-derived bound.
 Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
 inspection output; sigmoid training and randomized equivalence are not yet
@@ -79,3 +79,8 @@ The finite-domain XOR acceptance example is covered by an automated test for
 the four truth-table outcomes and least-model equivalence. This adds an
 acceptance example; it does not add sigmoid-mode support or weighted-neuron
 execution.
+
+Source trace facts now cover each input and output neuron for every ground
+clause where its atom occurs, as well as each hidden neuron for its clause.
+These trace clause identifiers refer to the grounded network clauses; the
+original variable-bearing source clauses are not reconstructed.

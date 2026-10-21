@@ -72,7 +72,8 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
   fixpoint step reporting. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
 - Inspectable input, hidden, and output neuron facts, weighted edges,
-  recurrent links, and source trace facts; optional JSON export of this current
+  recurrent links, and source traces mapping each neuron to every represented
+  ground clause containing its atom; optional JSON export of this current
   step-mode representation.
 - Source locations on parse-time unsupported-construct errors.
 - Source-equivalence verification for a `network/7` term or a loaded generated
@@ -140,12 +141,14 @@ translation emits inspectable neuron, edge, and recurrent-link facts, runtime
 evaluation computes stratified least-model closure from retained symbolic
 ground rules rather than evaluating those weighted facts.
 
-Basic hidden-neuron source trace facts are emitted, but complete neuron-to-source
-traceability is not implemented. `ann_extract/2` and JSON export are implemented
-for the current step-mode schema; extraction returns represented ground rules,
-not original source text. Sigmoid/tanh activation, a verified CILP weight-bound
-implementation, and training are not implemented. Verification covers
-least-model agreement only for programs in the supported finite-domain subset.
+Trace facts cover input and output neurons for each ground clause in which their
+atom appears, and hidden neurons for their corresponding ground clause. Clause
+IDs identify the clauses in the grounded network, not original variable-bearing
+source clauses. `ann_extract/2` and JSON export are implemented for the current
+step-mode schema; extraction returns represented ground rules, not original
+source text. Sigmoid/tanh activation, a verified CILP weight-bound implementation,
+and training are not implemented. Verification covers least-model agreement
+only for programs in the supported finite-domain subset.
 Consult
 [`STATUS.md`](STATUS.md) for the requirement-by-requirement list.
 
@@ -162,9 +165,10 @@ negative-cycle detection, the grounding-size limit, stratified negation,
 mutual recursion over a bounded integer range, cyclic reachability through a
 fixpoint (including self-reachability), emitted-module queries and conversion
 output, JSON export and its network fields, the optional runtime step limit,
-source/network equivalence and mismatch reporting, and extraction round trips
-for recursion, stratified negation, and generated modules, plus XOR equivalence
-and query results. Run all current PlUnit tests with the command above. The
+input/hidden/output neuron trace facts, source/network equivalence and mismatch
+reporting, and extraction round trips for recursion, stratified negation, and
+generated modules, plus XOR equivalence and query results. Run all current
+PlUnit tests with the command above. The
 ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
 generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
