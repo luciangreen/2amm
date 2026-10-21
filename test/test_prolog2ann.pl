@@ -131,6 +131,7 @@ test(emitted_runtime_step_limit) :-
                 assertion(Steps == 1),
                 assertion(Reached == false),
                 catch(test_limited:ann_query(ancestor(ann, dee), _), Error, true),
+                assertion(nonvar(Error)),
                 assertion(Error = error(no_fixpoint(1), _))
               ),
               unload_file(Output))
