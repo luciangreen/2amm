@@ -1,7 +1,8 @@
 :- module(prolog2ann,
           [ convert_file/3,
             convert_clauses/3,
-            ann_verify/3
+            ann_verify/3,
+            ann_export_json/2
           ]).
 
 :- use_module('prolog2ann/parse').
@@ -9,6 +10,7 @@
 :- use_module('prolog2ann/ground').
 :- use_module('prolog2ann/translate').
 :- use_module('prolog2ann/emit').
+:- use_module('prolog2ann/json_export').
 :- use_module('prolog2ann/runtime').
 :- use_module(library(lists)).
 :- use_module(library(error)).
@@ -16,7 +18,8 @@
 %! convert_file(+Source, +Options, -Network) is det.
 %
 % Convert a finite-domain Prolog file to a step-mode network. Options may
-% contain domain(File), out(File), module(Name), and limit(MaxAtoms).
+% contain domain(File), out(File), json(File), module(Name), and
+% limit(MaxAtoms).
 convert_file(Source, Options, Network) :-
     option_value(mode, Options, step, Mode),
     ( Mode == step -> true ; throw(error(unsupported_mode(Mode), _)) ),
@@ -33,11 +36,24 @@ convert_file(Source, Options, Network) :-
     domain_values(DomainFile, DomainValues),
     ground_program(Normalised, DomainValues, Ground, Limit, Atoms),
     translate(Ground, Atoms, Network),
-    (   option_value(out, Options, none, Output)
+    (   option_value(out, Options, none, Output),
+        Output \== none
     ->  option_value(module, Options, prolog2ann_generated, Module),
         emit_network(Output, Module, Network, EmitOptions)
     ;   true
+    ),
+    (   option_value(json, Options, none, JsonFile),
+        JsonFile \== none
+    ->  export_json(JsonFile, Network)
+    ;   true
     ).
+
+%! ann_export_json(+File, +Network) is det.
+%
+% Export a translated network's neurons, edges, recurrent links, and traces as
+% JSON.
+ann_export_json(File, Network) :-
+    export_json(File, Network).
 
 %! convert_clauses(+Clauses, +Options, -Network) is det.
 %

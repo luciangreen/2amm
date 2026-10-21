@@ -10,7 +10,8 @@
 mkdir -p build
 swipl bin/prolog2ann.pl convert examples/ancestor.pl \
   --domain examples/ancestor_domain.pl --mode step \
-  --out build/net_ancestor.pl --module net_ancestor
+  --out build/net_ancestor.pl --module net_ancestor \
+  --json build/net_ancestor.json
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
 swipl bin/prolog2ann.pl verify examples/ancestor.pl build/net_ancestor.pl
 ```
@@ -44,6 +45,9 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
 - A step-mode Prolog network with ground queries, pattern queries, and
   fixpoint step reporting. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
+- Inspectable input, hidden, and output neuron facts, weighted edges,
+  recurrent links, and source trace facts; optional JSON export of this current
+  step-mode representation.
 - Source locations on parse-time unsupported-construct errors.
 - Source-equivalence verification for a `network/7` term or a loaded generated
   module, returning `equivalent` or `mismatch(Missing, Unexpected)`.
@@ -57,9 +61,16 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
 (default 10,000); it is not a runtime step limit. The CLI supports:
 
 - `convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N]`
-  `--out FILE [--module NAME]`
+  `--out FILE [--module NAME] [--json FILE]`
 - `query NETWORK.pl "ground_goal"`
 - `verify SOURCE NETWORK.pl`
+
+The `--json FILE` option writes a JSON object containing `mode`, `atoms`,
+`neurons` (IDs, layers, activations, and thresholds), `edges` (source, target,
+and weight), `recurrent` links, and source `traces`. The library also exports
+`ann_export_json(+File, +Network)` for exporting a network returned by
+`convert_file/3` or `convert_clauses/3`. JSON currently describes the
+step-mode representation; it does not imply support for sigmoid training.
 
 Verification uses the finite universe represented by the network's atom base,
 combined with constants in the source program. The library API does not accept
@@ -68,7 +79,7 @@ a separate domain file for verification.
 The generated module exports `ann_query/2`, `ann_query_all/2`, and
 `ann_run/3`, along with the inspectable neuron, edge, recurrent-link, and trace
 facts. The library entry point exports `convert_file/3`, `convert_clauses/3`,
-and `ann_verify/3`.
+`ann_verify/3`, and `ann_export_json/2`.
 
 Example bounded input:
 
@@ -107,8 +118,12 @@ swipl -q -s test/run_tests.pl
 The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
 mutual recursion over a bounded integer range, emitted-module queries and
-conversion output, the optional runtime step limit, and source/network
-equivalence and mismatch reporting.
+conversion output, JSON export and its network fields, the optional runtime
+step limit, and source/network equivalence and mismatch reporting. Run all
+current PlUnit tests with the command above. The ancestor quickstart exercises
+conversion, generated-module querying, source/network verification, and JSON
+generation; the `flies` and `even_odd` tests exercise stratified negation and
+bounded mutual recursion respectively.
 
 Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
@@ -116,5 +131,6 @@ limit, add `--step-limit 1` to `convert`; then call the generated module's
 The `verify` command accepts the source file and generated network file in
 that order.
 More acceptance programs from `pr1.txt` (including cyclic reachability, XOR,
-training, extraction, JSON export, and randomized equivalence) remain to be
-added.
+training, extraction, and randomized equivalence) remain to be added. See
+[`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
+the remaining milestones.

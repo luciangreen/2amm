@@ -6,8 +6,10 @@
 :- use_module('../prolog/prolog2ann/ground').
 :- use_module('../prolog/prolog2ann/translate').
 :- use_module('../prolog/prolog2ann/emit').
+:- use_module('../prolog/prolog2ann/json_export').
 :- use_module('../prolog/prolog2ann/runtime').
 :- use_module(library(plunit)).
+:- use_module(library(http/json)).
 
 :- dynamic examples_directory/1.
 
@@ -112,6 +114,56 @@ test(convert_file_creates_output) :-
                 test_generated:ann_query(ancestor(ann, dee), true)
               ),
               unload_file(Output))
+        ),
+        ( exists_file(Output) -> delete_file(Output) ; true )).
+
+test(export_json_network_representation) :-
+    prolog2ann:convert_clauses([p(a), (q(X) :- p(X))],
+                               [domain_values([a])],
+                               Network),
+    tmp_file(prolog2ann_json, Output),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann:ann_export_json(Output, Network),
+          setup_call_cleanup(
+              open(Output, read, Stream, [encoding(utf8)]),
+              json_read_dict(Stream, Json),
+              close(Stream)),
+          assertion(Json.mode == "step"),
+          assertion(member(_{id: "out(q(a))",
+                             layer: "output",
+                             activation: "step",
+                             threshold: 0.5},
+                           Json.neurons)),
+          assertion(member(_{from: "in(p(a))",
+                             to: "hidden(2)",
+                             weight: 1.0},
+                           Json.edges)),
+          assertion(member(_{from: "out(p(a))",
+                             to: "in(p(a))"},
+                           Json.recurrent)),
+          assertion(memberchk(_{neuron: "hidden(2)",
+                                clause: 2,
+                                file: "<memory>",
+                                line: 1},
+                              Json.traces))
+        ),
+        ( exists_file(Output) -> delete_file(Output) ; true )).
+
+test(convert_file_creates_json_output) :-
+    test_prolog2ann:example(ancestor, File),
+    test_prolog2ann:example(ancestor_domain, Domain),
+    tmp_file(prolog2ann_json, Output),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann:convert_file(File, [domain(Domain), json(Output)], _),
+          exists_file(Output),
+          setup_call_cleanup(
+              open(Output, read, Stream, [encoding(utf8)]),
+              json_read_dict(Stream, Json),
+              close(Stream)),
+          assertion(Json.mode == "step"),
+          assertion(Json.neurons \= [])
         ),
         ( exists_file(Output) -> delete_file(Output) ; true )).
 
