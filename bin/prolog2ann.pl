@@ -23,13 +23,24 @@ run([query, NetworkFile, GoalText]) :-
     read_term_from_atom(GoalText, Goal, []),
     Module:ann_query(Goal, Truth),
     format('~q: ~q~n', [Goal, Truth]).
-run([verify, _Source, _Network]) :-
-    throw(error(not_implemented(verify), _)).
+run([verify, Source, NetworkFile]) :-
+    load_files(NetworkFile, []),
+    network_module(NetworkFile, Module),
+    prolog2ann:ann_verify(Source, Module, Result),
+    report_verification(Result).
 run(_) :-
     format(user_error,
-           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
+           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n       swipl bin/prolog2ann.pl verify SOURCE NETWORK.pl~n',
            []),
     halt(2).
+
+report_verification(equivalent) :-
+    format('Verified: source and network have the same least model.~n', []).
+report_verification(mismatch(Missing, Unexpected)) :-
+    format(user_error, 'Not equivalent.~n', []),
+    format(user_error, 'Missing from network: ~q~n', [Missing]),
+    format(user_error, 'Unexpected in network: ~q~n', [Unexpected]),
+    halt(1).
 
 parse_options([], []).
 parse_options(['--domain', File|Rest], [domain(File)|Options]) :-

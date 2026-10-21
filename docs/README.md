@@ -12,11 +12,15 @@ swipl bin/prolog2ann.pl convert examples/ancestor.pl \
   --domain examples/ancestor_domain.pl --mode step \
   --out build/net_ancestor.pl --module net_ancestor
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
+swipl bin/prolog2ann.pl verify examples/ancestor.pl build/net_ancestor.pl
 ```
 
 The query command prints `ancestor(ann,dee): true`; a ground atom not in the
-least model prints `false`. The generated module uses the packaged
-`prolog2ann/runtime` library, but does not load or need the source program.
+least model prints `false`. Verification prints a success message when the
+source and generated network have the same least model. Otherwise it reports
+atoms missing from the network and unexpected network atoms, and exits with
+status 1. The generated module uses the packaged `prolog2ann/runtime` library,
+but does not load or need the source program.
 
 For an independent installation of an emitted module, install `prolog2ann` as
 a SWI-Prolog pack or include the package's `prolog/` directory on SWI-Prolog's
@@ -41,6 +45,8 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
   fixpoint step reporting. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
 - Source locations on parse-time unsupported-construct errors.
+- Source-equivalence verification for a `network/7` term or a loaded generated
+  module, returning `equivalent` or `mismatch(Missing, Unexpected)`.
 - Optional runtime fixpoint step limit, set at conversion time with
   `--step-limit N` (or `step_limit(N)` in `convert_file/3` options). If omitted,
   each stratum uses the default Herbrand-base size + 1. `ann_run/3` reports
@@ -53,14 +59,16 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
 - `convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N]`
   `--out FILE [--module NAME]`
 - `query NETWORK.pl "ground_goal"`
+- `verify SOURCE NETWORK.pl`
 
-The CLI also recognizes `verify SOURCE NETWORK.pl`, but verification is a
-placeholder and currently raises `error(not_implemented(verify), _)`.
+Verification uses the finite universe represented by the network's atom base,
+combined with constants in the source program. The library API does not accept
+a separate domain file for verification.
 
 The generated module exports `ann_query/2`, `ann_query_all/2`, and
 `ann_run/3`, along with the inspectable neuron, edge, recurrent-link, and trace
 facts. The library entry point exports `convert_file/3`, `convert_clauses/3`,
-and the currently unimplemented `ann_verify/3` stub.
+and `ann_verify/3`.
 
 Example bounded input:
 
@@ -83,9 +91,10 @@ stratified least-model closure symbolically from ground rules; the full
 explicit weighted-neuron encoding in `pr1.txt` is not finished.
 
 Sigmoid/tanh activation, the CILP weight-bound implementation, training,
-extraction, JSON export, full `ann_verify/3`, and the complete acceptance and
-random-property suites are not implemented. Consult [`STATUS.md`](STATUS.md)
-for the requirement-by-requirement list.
+extraction, JSON export, and the complete acceptance and random-property suites
+are not implemented. Verification currently covers least-model agreement only
+for programs in the supported finite-domain subset. Consult
+[`STATUS.md`](STATUS.md) for the requirement-by-requirement list.
 
 ## Tests
 
@@ -97,12 +106,15 @@ swipl -q -s test/run_tests.pl
 
 The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
-mutual recursion over a bounded integer range, emitted-module queries, and
-conversion output. It also checks the optional runtime step limit.
+mutual recursion over a bounded integer range, emitted-module queries and
+conversion output, the optional runtime step limit, and source/network
+equivalence and mismatch reporting.
 
 Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
 `ann_run(Atoms, Steps, Reached)` to inspect whether its fixpoint was reached.
+The `verify` command accepts the source file and generated network file in
+that order.
 More acceptance programs from `pr1.txt` (including cyclic reachability, XOR,
 training, extraction, JSON export, and randomized equivalence) remain to be
 added.

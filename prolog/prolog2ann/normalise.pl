@@ -35,7 +35,7 @@ flatten_body(Body, [Body]).
 
 classify_literals([], [], [], []).
 classify_literals([Literal|Rest], Positive, Negative, Builtins) :-
-    (   Literal = \+ Goal
+    (   Literal = (\+ Goal)
     ->  Positive = PosRest, Negative = [Goal|NegRest], Builtins = BuiltRest
     ;   builtin_literal(Literal)
     ->  Positive = PosRest, Negative = NegRest, Builtins = [Literal|BuiltRest]
