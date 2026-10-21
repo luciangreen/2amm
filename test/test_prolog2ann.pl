@@ -40,6 +40,23 @@ test(reject_non_stratified_negation) :-
     assertion(Error = error(non_stratified_negation(Cycle), file(sample, 1))),
     assertion(memberchk(p/1, Cycle)).
 
+test(reject_win_acceptance_example) :-
+    test_prolog2ann:example(win, File),
+    prolog2ann_parse:parse_file(File, Parsed),
+    catch(prolog2ann_normalise:normalise(Parsed, _), Error, true),
+    assertion(Error = error(non_stratified_negation(Cycle), file(File, 4))),
+    assertion(memberchk(win/1, Cycle)).
+
+test(acceptance_examples_verify_least_models) :-
+    forall(member(Name-Domain,
+                 [ ancestor-ancestor_domain,
+                   reach-none,
+                   even_odd-even_odd_domain,
+                   xor-none,
+                   flies-none
+                 ]),
+           test_prolog2ann:verify_example(Name, Domain)).
+
 test(grounding_limit) :-
     test_prolog2ann:example(ancestor, File),
     test_prolog2ann:example(ancestor_domain, Domain),
@@ -325,6 +342,17 @@ test(extract_from_generated_module) :-
 example(Name, File) :-
     examples_directory(Examples),
     atomic_list_concat([Examples, '/', Name, '.pl'], File).
+
+verify_example(Name, DomainName) :-
+    test_prolog2ann:example(Name, File),
+    (   DomainName == none
+    ->  Options = []
+    ;   test_prolog2ann:example(DomainName, DomainFile),
+        Options = [domain(DomainFile)]
+    ),
+    prolog2ann:convert_file(File, Options, Network),
+    prolog2ann:ann_verify(File, Network, Result),
+    assertion(Result == equivalent).
 
 temporary_network(Network, Module, Path) :-
     tmp_file(prolog2ann, Path),

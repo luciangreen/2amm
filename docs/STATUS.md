@@ -67,6 +67,20 @@ declarations.
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
 
+## Coverage update
+
+The PlUnit suite now includes full least-model equivalence checks for each
+supported acceptance example (`ancestor`, `reach`, `even_odd`, `xor`, and
+`flies`) and rejects the checked-in `win.pl` non-stratified program. Run the
+suite with `swipl -q -s test/run_tests.pl`; see [`README.md`](README.md) for
+copy/paste CLI commands for the supported examples.
+
+These checks extend the current regression coverage; they do not complete the
+remaining v1 requirements below. The main implementation milestones still
+outstanding are typed finite domains and bounded compound terms, execution of
+the explicit weighted network, verified sigmoid/tanh support and training,
+randomized equivalence coverage, CI, and release readiness.
+
 ## Latest implementation update
 
 Step-mode program extraction is now available through `ann_extract/2` for
