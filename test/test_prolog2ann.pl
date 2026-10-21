@@ -142,9 +142,11 @@ test(export_json_network_representation) :-
           assertion(member(_{from: "out(p(a))",
                              to: "in(p(a))"},
                            Json.recurrent)),
-          member(Trace, Json.traces),
-          assertion(Trace.neuron == "hidden(2)"),
-          assertion(Trace.clause =:= 2)
+          assertion(memberchk(_{neuron: "hidden(2)",
+                                clause: 2,
+                                file: "<memory>",
+                                line: 1},
+                              Json.traces))
         ),
         ( exists_file(Output) -> delete_file(Output) ; true )).
 

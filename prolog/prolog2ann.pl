@@ -36,12 +36,14 @@ convert_file(Source, Options, Network) :-
     domain_values(DomainFile, DomainValues),
     ground_program(Normalised, DomainValues, Ground, Limit, Atoms),
     translate(Ground, Atoms, Network),
-    (   option_value(out, Options, none, Output)
+    (   option_value(out, Options, none, Output),
+        Output \== none
     ->  option_value(module, Options, prolog2ann_generated, Module),
         emit_network(Output, Module, Network, EmitOptions)
     ;   true
     ),
-    (   option_value(json, Options, none, JsonFile)
+    (   option_value(json, Options, none, JsonFile),
+        JsonFile \== none
     ->  export_json(JsonFile, Network)
     ;   true
     ).
