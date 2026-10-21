@@ -30,7 +30,7 @@ run([verify, Source, NetworkFile]) :-
     report_verification(Result).
 run(_) :-
     format(user_error,
-           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n       swipl bin/prolog2ann.pl verify SOURCE NETWORK.pl~n',
+           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N] --out FILE [--json FILE]~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n       swipl bin/prolog2ann.pl verify SOURCE NETWORK.pl~n',
            []),
     halt(2).
 
@@ -46,6 +46,8 @@ parse_options([], []).
 parse_options(['--domain', File|Rest], [domain(File)|Options]) :-
     !, parse_options(Rest, Options).
 parse_options(['--out', File|Rest], [out(File)|Options]) :-
+    !, parse_options(Rest, Options).
+parse_options(['--json', File|Rest], [json(File)|Options]) :-
     !, parse_options(Rest, Options).
 parse_options(['--module', Name|Rest], [module(Module)|Options]) :-
     !, text_atom(Name, Module), parse_options(Rest, Options).

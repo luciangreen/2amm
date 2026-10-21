@@ -17,7 +17,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-10 | Not implemented — sigmoid backpropagation |
 | FR-11 | Not implemented — program extraction |
 | FR-12 | Partial — emits basic source trace facts; no complete neuron-to-clause traceability yet |
-| FR-13 | Not implemented — JSON export |
+| FR-13 | Implemented for the current step-mode schema — exports atoms, neurons, weighted edges, recurrent links, and traces via `--json` or `ann_export_json/2` |
 
 ## Remaining work
 
@@ -26,15 +26,19 @@ not yet satisfy the v1 acceptance criteria in full.
    diagnostics, and exact stratification diagnostics.
 2. Replace symbolic ground-rule execution with the explicit weighted
    input/hidden/output neuron model, recurrent links, and complete trace map.
-3. Add JSON export and CLI support for JSON output. Source-equivalence checking
-   is implemented for the supported subset; its finite universe is inferred
-   from the network atom base and source constants.
+3. Complete neuron-to-clause traceability and replace symbolic ground-rule
+   execution with the explicit weighted-neuron runtime. JSON export currently
+   describes the available network facts and does not make this runtime change.
 4. Verify the sigmoid/CILP formula against the cited paper and implement
    sigmoid/tanh modes and training only after recording the exact assumptions.
 5. Implement step-network extraction.
-6. Add the remaining acceptance examples, round-trip and training tests,
-   randomized property tests, CI, PlDoc coverage, and release/pack metadata
-   checks before claiming M1–M6 complete.
+6. Finish typed domains, bounded lists/compound terms, and the full required
+   unsupported-syntax diagnostics. Source-equivalence checking is implemented
+   for the supported subset; its finite universe is inferred from the network
+   atom base and source constants.
+7. Add the remaining acceptance examples, round-trip and training tests,
+   randomized property tests, CI, complete PlDoc coverage, and release/pack
+   metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -43,7 +47,8 @@ swipl -q -s test/run_tests.pl
 mkdir -p build
 swipl bin/prolog2ann.pl convert examples/ancestor.pl \
   --domain examples/ancestor_domain.pl --mode step \
-  --out build/net_ancestor.pl --module net_ancestor
+  --out build/net_ancestor.pl --module net_ancestor \
+  --json build/net_ancestor.json
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
 swipl bin/prolog2ann.pl verify examples/ancestor.pl build/net_ancestor.pl
 ```
@@ -52,6 +57,13 @@ To inspect a deliberately limited runtime run, convert with
 `--step-limit 1`, then call the generated module's `ann_run/3`. A run that
 does not converge within that limit reports `Reached = false`; `ann_query/2`
 and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
+
+The PlUnit suite also covers parser diagnostics, grounding limits, weighted
+translation, negation, mutual recursion over an integer range, JSON structure,
+step limits, and equivalence/mismatch reporting. Use
+`swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
+inspection output; sigmoid training, extraction, and randomized equivalence
+are not yet implemented.
 
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
