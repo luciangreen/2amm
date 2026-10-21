@@ -15,30 +15,24 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-8 | Implemented in emitted modules for matching active atoms |
 | FR-9 | Implemented for the supported subset — fixpoint evaluation, default and configurable per-network step limits (`--step-limit`), and source/network least-model comparison with `ann_verify/3` |
 | FR-10 | Not implemented — sigmoid backpropagation |
-| FR-11 | Not implemented — program extraction |
+| FR-11 | Implemented for step-mode `network/7` terms and loaded generated modules; extracts ground rules and supports round-trip conversion |
 | FR-12 | Partial — emits basic source trace facts; no complete neuron-to-clause traceability yet |
 | FR-13 | Implemented for the current step-mode schema — exports atoms, neurons, weighted edges, recurrent links, and traces via `--json` or `ann_export_json/2` |
 
 ## Remaining work
 
-1. Correct and complete the five-stage acceptance behavior: typed domain
-   inference, integer binding/range semantics, full unsupported syntax
-   diagnostics, and exact stratification diagnostics.
-2. Replace symbolic ground-rule execution with the explicit weighted
-   input/hidden/output neuron model, recurrent links, and complete trace map.
-3. Complete neuron-to-clause traceability and replace symbolic ground-rule
-   execution with the explicit weighted-neuron runtime. JSON export currently
-   describes the available network facts and does not make this runtime change.
-4. Verify the sigmoid/CILP formula against the cited paper and implement
-   sigmoid/tanh modes and training only after recording the exact assumptions.
-5. Implement step-network extraction.
-6. Finish typed domains, bounded lists/compound terms, and the full required
-   unsupported-syntax diagnostics. Source-equivalence checking is implemented
-   for the supported subset; its finite universe is inferred from the network
-   atom base and source constants.
-7. Add the remaining acceptance examples, round-trip and training tests,
-   randomized property tests, CI, complete PlDoc coverage, and release/pack
-   metadata checks before claiming M1–M6 complete.
+1. Finish typed-domain inference, integer binding/range semantics, bounded
+   lists/compound terms, and the required unsupported-syntax and stratification
+   diagnostics. The current grounding universe is global.
+2. Replace symbolic ground-rule execution with evaluation of the explicit
+   weighted input/hidden/output neuron model and recurrent links. Complete
+   neuron-to-clause traceability; the JSON currently reports the available
+   network facts but does not implement this runtime change.
+3. Verify the sigmoid/CILP formula against the cited paper before implementing
+   sigmoid/tanh modes and training; record the exact assumptions.
+4. Add the remaining acceptance examples (including cyclic reachability and
+   XOR), sigmoid/training tests, randomized property tests, CI, complete PlDoc
+   coverage, and release/pack metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -60,10 +54,20 @@ and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 
 The PlUnit suite also covers parser diagnostics, grounding limits, weighted
 translation, negation, mutual recursion over an integer range, JSON structure,
-step limits, and equivalence/mismatch reporting. Use
+step limits, equivalence/mismatch reporting, and extraction round trips for
+positive recursion, stratified negation, and generated modules. Use
 `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
-inspection output; sigmoid training, extraction, and randomized equivalence
-are not yet implemented.
+inspection output; sigmoid training and randomized equivalence are not yet
+implemented. Extraction returns ground rules only: it does not reconstruct the
+source's variable names, comments, source order, or domain declarations.
 
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
+
+## Latest implementation update
+
+Step-mode program extraction is now available through `ann_extract/2` for
+in-memory `network/7` terms and loaded generated modules. It returns ground
+clauses from the network rule facts and is tested by re-converting the result,
+including a stratified-negation case. This is not recovery of original source
+text and does not change the symbolic ground-rule runtime.

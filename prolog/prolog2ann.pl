@@ -12,7 +12,7 @@
 :- use_module('prolog2ann/translate').
 :- use_module('prolog2ann/emit').
 :- use_module('prolog2ann/json_export').
-:- use_module('prolog2ann/extract').
+:- use_module('prolog2ann/extract', []).
 :- use_module('prolog2ann/runtime').
 :- use_module(library(lists)).
 :- use_module(library(error)).

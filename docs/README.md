@@ -51,6 +51,9 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
 - Source locations on parse-time unsupported-construct errors.
 - Source-equivalence verification for a `network/7` term or a loaded generated
   module, returning `equivalent` or `mismatch(Missing, Unexpected)`.
+- Step-mode extraction via `ann_extract/2`, reconstructing the network's
+  represented ground clauses from either a `network/7` term or a loaded
+  generated module.
 - Optional runtime fixpoint step limit, set at conversion time with
   `--step-limit N` (or `step_limit(N)` in `convert_file/3` options). If omitted,
   each stratum uses the default Herbrand-base size + 1. `ann_run/3` reports
@@ -79,7 +82,14 @@ a separate domain file for verification.
 The generated module exports `ann_query/2`, `ann_query_all/2`, and
 `ann_run/3`, along with the inspectable neuron, edge, recurrent-link, and trace
 facts. The library entry point exports `convert_file/3`, `convert_clauses/3`,
-`ann_verify/3`, and `ann_export_json/2`.
+`ann_verify/3`, `ann_export_json/2`, and `ann_extract/2`.
+
+`ann_extract(Network, Clauses)` returns ground facts and rules. The extracted
+program preserves represented positive and stratified-negative rules, so it can
+be passed to `convert_clauses/3` for round-trip checks. Extraction cannot recover
+the original variables, clause order, comments, source locations, domain
+declarations, or source formatting. `ann_extract(GeneratedModule, Clauses)` also
+accepts a loaded generated step-mode module.
 
 Example bounded input:
 
@@ -119,7 +129,8 @@ The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
 mutual recursion over a bounded integer range, emitted-module queries and
 conversion output, JSON export and its network fields, the optional runtime
-step limit, and source/network equivalence and mismatch reporting. Run all
+step limit, source/network equivalence and mismatch reporting, and extraction
+round trips for recursion, stratified negation, and generated modules. Run all
 current PlUnit tests with the command above. The ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
 generation; the `flies` and `even_odd` tests exercise stratified negation and
@@ -129,8 +140,11 @@ Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
 `ann_run(Atoms, Steps, Reached)` to inspect whether its fixpoint was reached.
 The `verify` command accepts the source file and generated network file in
-that order.
+that order. The current extraction API can be exercised from the Prolog top
+level after loading `prolog/prolog2ann.pl` and generating or converting a
+network: call `prolog2ann:ann_extract(Network, Clauses)` and then
+`prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
 More acceptance programs from `pr1.txt` (including cyclic reachability, XOR,
-training, extraction, and randomized equivalence) remain to be added. See
+sigmoid training, and randomized equivalence) remain to be added. See
 [`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
 the remaining milestones.
