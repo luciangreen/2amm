@@ -49,6 +49,28 @@ swipl bin/prolog2ann.pl verify examples/reach.pl build/net_reach.pl
 The graph contains a cycle, so the least model includes `reach(a,a)`,
 `reach(b,b)`, and `reach(c,c)` as well as the paths between distinct vertices.
 
+The other supported acceptance examples can also be checked end to end:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/even_odd.pl \
+  --domain examples/even_odd_domain.pl --mode step \
+  --out build/net_even_odd.pl --module net_even_odd
+swipl bin/prolog2ann.pl query build/net_even_odd.pl "even(4)"
+swipl bin/prolog2ann.pl verify examples/even_odd.pl build/net_even_odd.pl
+
+swipl bin/prolog2ann.pl convert examples/flies.pl --mode step \
+  --out build/net_flies.pl --module net_flies
+swipl bin/prolog2ann.pl query build/net_flies.pl "flies(pingu)"
+swipl bin/prolog2ann.pl verify examples/flies.pl build/net_flies.pl
+```
+
+The `even_odd` conversion requires its bounded integer range. The `flies`
+example demonstrates stratified negation, so `flies(pingu)` is false while
+`flies(tweety)` and `flies(polly)` are true. The `win` and `cut` examples are
+negative cases exercised by the PlUnit suite: `win.pl` must report its
+non-stratified predicate cycle, and `cut.pl` must report `unsupported_construct(!)`
+with a source line.
+
 For an independent installation of an emitted module, install `prolog2ann` as
 a SWI-Prolog pack or include the package's `prolog/` directory on SWI-Prolog's
 library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
@@ -167,7 +189,9 @@ fixpoint (including self-reachability), emitted-module queries and conversion
 output, JSON export and its network fields, the optional runtime step limit,
 input/hidden/output neuron trace facts, source/network equivalence and mismatch
 reporting, and extraction round trips for recursion, stratified negation, and
-generated modules, plus XOR equivalence and query results. Run all current
+generated modules. It also verifies complete least-model agreement for the
+`ancestor`, `reach`, `even_odd`, `xor`, and `flies` acceptance examples, and
+checks rejection of the checked-in `win` non-stratified example. Run all current
 PlUnit tests with the command above. The ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
 generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
