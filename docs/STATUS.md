@@ -30,9 +30,9 @@ not yet satisfy the v1 acceptance criteria in full.
    network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Add the remaining acceptance examples (including cyclic reachability and
-   XOR), sigmoid/training tests, randomized property tests, CI, complete PlDoc
-   coverage, and release/pack metadata checks before claiming M1–M6 complete.
+4. Add the remaining acceptance examples (including XOR), sigmoid/training
+   tests, randomized property tests, CI, complete PlDoc coverage, and
+   release/pack metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -55,8 +55,10 @@ and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 The PlUnit suite also covers parser diagnostics, grounding limits, weighted
 translation, negation, mutual recursion over an integer range, JSON structure,
 step limits, equivalence/mismatch reporting, and extraction round trips for
-positive recursion, stratified negation, and generated modules. Use
-`swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
+positive recursion, stratified negation, generated modules, and cyclic
+reachability. The cyclic example checks recursive self-reachability and that
+fixpoint evaluation completes within the default Herbrand-base-derived bound.
+Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
 inspection output; sigmoid training and randomized equivalence are not yet
 implemented. Extraction returns ground rules only: it does not reconstruct the
 source's variable names, comments, source order, or domain declarations.

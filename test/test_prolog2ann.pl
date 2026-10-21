@@ -100,6 +100,26 @@ test(mutual_recursion_with_integer_range) :-
         ),
         ( unload_file(Path), delete_file(Path) )).
 
+test(cyclic_reachability_reaches_fixpoint) :-
+    test_prolog2ann:example(reach, File),
+    prolog2ann:convert_file(File, [], Network),
+    prolog2ann:ann_verify(File, Network, equivalent),
+    test_prolog2ann:temporary_network(Network, Module, Path),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann_runtime:ann_query(Module, reach(a, a), true),
+          prolog2ann_runtime:ann_query(Module, reach(a, c), true),
+          prolog2ann_runtime:ann_query(Module, reach(d, d), false),
+          prolog2ann_runtime:run_network(Module, _, Steps, true),
+          Network = network(Atoms, _, _, _, _, _, _),
+          length(Atoms, BaseSize),
+          assertion(Steps =< BaseSize + 1),
+          prolog2ann_runtime:ann_query_all(Module, reach(a, Y), Solutions),
+          assertion(var(Y)),
+          assertion(Solutions == [reach(a, a), reach(a, b), reach(a, c)])
+        ),
+        ( unload_file(Path), delete_file(Path) )).
+
 test(convert_file_creates_output) :-
     test_prolog2ann:example(ancestor, File),
     test_prolog2ann:example(ancestor_domain, Domain),
