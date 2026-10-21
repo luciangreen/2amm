@@ -23,6 +23,18 @@ atoms missing from the network and unexpected network atoms, and exits with
 status 1. The generated module uses the packaged `prolog2ann/runtime` library,
 but does not load or need the source program.
 
+The cyclic reachability example can be converted and checked independently:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/reach.pl --mode step \
+  --out build/net_reach.pl --module net_reach
+swipl bin/prolog2ann.pl query build/net_reach.pl "reach(a, a)"
+swipl bin/prolog2ann.pl verify examples/reach.pl build/net_reach.pl
+```
+
+The graph contains a cycle, so the least model includes `reach(a,a)`,
+`reach(b,b)`, and `reach(c,c)` as well as the paths between distinct vertices.
+
 For an independent installation of an emitted module, install `prolog2ann` as
 a SWI-Prolog pack or include the package's `prolog/` directory on SWI-Prolog's
 library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
@@ -127,14 +139,15 @@ swipl -q -s test/run_tests.pl
 
 The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
-mutual recursion over a bounded integer range, emitted-module queries and
-conversion output, JSON export and its network fields, the optional runtime
-step limit, source/network equivalence and mismatch reporting, and extraction
-round trips for recursion, stratified negation, and generated modules. Run all
-current PlUnit tests with the command above. The ancestor quickstart exercises
+mutual recursion over a bounded integer range, cyclic reachability through a
+fixpoint (including self-reachability), emitted-module queries and conversion
+output, JSON export and its network fields, the optional runtime step limit,
+source/network equivalence and mismatch reporting, and extraction round trips
+for recursion, stratified negation, and generated modules. Run all current
+PlUnit tests with the command above. The ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
-generation; the `flies` and `even_odd` tests exercise stratified negation and
-bounded mutual recursion respectively.
+generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
+negation, bounded mutual recursion, and cyclic recursive closure respectively.
 
 Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
@@ -144,7 +157,7 @@ that order. The current extraction API can be exercised from the Prolog top
 level after loading `prolog/prolog2ann.pl` and generating or converting a
 network: call `prolog2ann:ann_extract(Network, Clauses)` and then
 `prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
-More acceptance programs from `pr1.txt` (including cyclic reachability, XOR,
-sigmoid training, and randomized equivalence) remain to be added. See
+More acceptance programs from `pr1.txt` (including XOR), sigmoid training, and
+randomized equivalence remain to be added. See
 [`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
 the remaining milestones.
