@@ -1,20 +1,22 @@
 :- module(prolog2ann_emit, [emit_network/3, emit_network/4]).
 
 :- use_module(library(lists)).
+:- use_module(library(error)).
 
 %! emit_network(+File, +Module, +Network) is det.
 %
 % Write deterministic Prolog facts and wrappers for a generated network.
 emit_network(File, Module,
-            Network) :-
-    emit_network(File, Module, Network, none).
+             Network) :-
+    emit_network(File, Module, Network, []).
 
-%! emit_network(+File, +Module, +Network, +StepLimit) is det.
+%! emit_network(+File, +Module, +Network, +Options) is det.
 %
-% Write a generated network, optionally with a per-stratum runtime step limit.
+% Write a network, optionally configuring its positive runtime step limit.
 emit_network(File, Module,
-            network(Atoms, Rules, Strata, Traces, Neurons, Edges, Recurrent),
-            StepLimit) :-
+             network(Atoms, Rules, Strata, Traces, Neurons, Edges, Recurrent),
+             Options) :-
+    step_limit_option(Options, StepLimit),
     setup_call_cleanup(
         open(File, write, Stream, [encoding(utf8)]),
         emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
@@ -39,6 +41,14 @@ emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
     format(Stream, '~nann_query(Goal, Truth) :- prolog2ann_runtime:ann_query(~q, Goal, Truth).~n', [Module]),
     format(Stream, 'ann_query_all(Pattern, Solutions) :- prolog2ann_runtime:ann_query_all(~q, Pattern, Solutions).~n', [Module]),
     format(Stream, 'ann_run(Atoms, Steps, Reached) :- prolog2ann_runtime:run_network(~q, Atoms, Steps, Reached).~n', [Module]).
+
+step_limit_option(Options, StepLimit) :-
+    (   member(step_limit(Value), Options)
+    ->  must_be(positive_integer, Value),
+        StepLimit = Value
+    ;
+    StepLimit = none
+    ).
 
 emit_step_limit(_, none) :- !.
 emit_step_limit(Stream, Limit) :-

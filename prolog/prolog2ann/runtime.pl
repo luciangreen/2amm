@@ -34,13 +34,20 @@ ann_query_all(Module, Pattern, Solutions) :-
 % Evaluate strata in order; each positive stratum runs to a least fixpoint.
 % Steps counts successful closure rounds and the final no-change round.
 run_network(Module, Atoms, Steps, Reached) :-
-    findall(Atom, Module:network_atom(Atom), AtomList0),
+    module_facts(Module, Atom, network_atom(Atom), AtomList0),
     sort(AtomList0, Base),
-    findall(Stratum, Module:network_stratum(Stratum), Strata0),
+    module_facts(Module, Stratum, network_stratum(Stratum), Strata0),
     sort(Strata0, Strata),
     module_step_limit(Module, Base, Limit),
     run_strata(Strata, Module, [], Base, Limit, Model, Steps, Reached),
     Atoms = Model.
+
+module_facts(Module, Template, Goal, Facts) :-
+    functor(Goal, Name, Arity),
+    (   current_predicate(Module:Name/Arity)
+    ->  findall(Template, Module:Goal, Facts)
+    ;   Facts = []
+    ).
 
 module_step_limit(Module, Base, Limit) :-
     (   current_predicate(Module:network_step_limit/1),

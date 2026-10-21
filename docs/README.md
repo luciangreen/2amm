@@ -9,14 +9,67 @@
 ```sh
 mkdir -p build
 swipl bin/prolog2ann.pl convert examples/ancestor.pl \
-  --domain examples/ancestor_domain.pl \
-  --mode step --out build/net_ancestor.pl --module net_ancestor
+  --domain examples/ancestor_domain.pl --mode step \
+  --out build/net_ancestor.pl --module net_ancestor \
+  --json build/net_ancestor.json
 swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
+swipl bin/prolog2ann.pl verify examples/ancestor.pl build/net_ancestor.pl
 ```
 
 The query command prints `ancestor(ann,dee): true`; a ground atom not in the
-least model prints `false`. The generated module uses the packaged
-`prolog2ann/runtime` library, but does not load or need the source program.
+least model prints `false`. Verification prints a success message when the
+source and generated network have the same least model. Otherwise it reports
+atoms missing from the network and unexpected network atoms, and exits with
+status 1. The generated module uses the packaged `prolog2ann/runtime` library,
+but does not load or need the source program.
+
+The XOR acceptance example exercises finite grounding, equality, stratified
+negation, pattern queries, and source/network verification:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/xor.pl --mode step \
+  --out build/net_xor.pl --module net_xor
+swipl bin/prolog2ann.pl query build/net_xor.pl "xor(0, 1)"
+swipl bin/prolog2ann.pl query build/net_xor.pl "xor(0, 0)"
+swipl bin/prolog2ann.pl verify examples/xor.pl build/net_xor.pl
+```
+
+The first query returns `true`, the second returns `false`, and verification
+checks the complete finite least model.
+
+The cyclic reachability example can be converted and checked independently:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/reach.pl --mode step \
+  --out build/net_reach.pl --module net_reach
+swipl bin/prolog2ann.pl query build/net_reach.pl "reach(a, a)"
+swipl bin/prolog2ann.pl verify examples/reach.pl build/net_reach.pl
+```
+
+The graph contains a cycle, so the least model includes `reach(a,a)`,
+`reach(b,b)`, and `reach(c,c)` as well as the paths between distinct vertices.
+
+The other supported acceptance examples can also be checked end to end:
+
+```sh
+swipl bin/prolog2ann.pl convert examples/even_odd.pl \
+  --domain examples/even_odd_domain.pl --mode step \
+  --out build/net_even_odd.pl --module net_even_odd
+swipl bin/prolog2ann.pl query build/net_even_odd.pl "even(4)"
+swipl bin/prolog2ann.pl verify examples/even_odd.pl build/net_even_odd.pl
+
+swipl bin/prolog2ann.pl convert examples/flies.pl --mode step \
+  --out build/net_flies.pl --module net_flies
+swipl bin/prolog2ann.pl query build/net_flies.pl "flies(pingu)"
+swipl bin/prolog2ann.pl verify examples/flies.pl build/net_flies.pl
+```
+
+The `even_odd` conversion requires its bounded integer range. The `flies`
+example demonstrates stratified negation, so `flies(pingu)` is false while
+`flies(tweety)` and `flies(polly)` are true. The `win` and `cut` examples are
+negative cases exercised by the PlUnit suite: `win.pl` must report its
+non-stratified predicate cycle, and `cut.pl` must report `unsupported_construct(!)`
+with a source line.
 
 The converter accepts `--limit N` to cap the grounded Herbrand base (default
 10,000 atoms) and `--steps N` to set the maximum closure rounds for each
@@ -54,7 +107,52 @@ whether every stratum reached a fixpoint.
 - A step-mode Prolog network with ground queries, pattern queries, and
   fixpoint step reporting. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
+- Inspectable input, hidden, and output neuron facts, weighted edges,
+  recurrent links, and source traces mapping input/output neurons to clauses
+  mentioning their atoms and hidden neurons to their originating clauses;
+  optional JSON export of this current step-mode representation.
 - Source locations on parse-time unsupported-construct errors.
+- Source-equivalence verification for a `network/7` term or a loaded generated
+  module, returning `equivalent` or `mismatch(Missing, Unexpected)`.
+- Step-mode extraction via `ann_extract/2`, reconstructing the network's
+  represented ground clauses from either a `network/7` term or a loaded
+  generated module.
+- Optional runtime fixpoint step limit, set at conversion time with
+  `--step-limit N` (or `step_limit(N)` in `convert_file/3` options). If omitted,
+  each stratum uses the default Herbrand-base size + 1. `ann_run/3` reports
+  `ReachedFixpoint = false` when the configured limit is reached, and query
+  predicates raise `error(no_fixpoint(Steps), _)`.
+
+`--limit N` is a separate conversion-time cap on the grounded Herbrand base
+(default 10,000); it is not a runtime step limit. The CLI supports:
+
+- `convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N]`
+  `--out FILE [--module NAME] [--json FILE]`
+- `query NETWORK.pl "ground_goal"`
+- `verify SOURCE NETWORK.pl`
+
+The `--json FILE` option writes a JSON object containing `mode`, `atoms`,
+`neurons` (IDs, layers, activations, and thresholds), `edges` (source, target,
+and weight), `recurrent` links, and source `traces`. The library also exports
+`ann_export_json(+File, +Network)` for exporting a network returned by
+`convert_file/3` or `convert_clauses/3`. JSON currently describes the
+step-mode representation; it does not imply support for sigmoid training.
+
+Verification uses the finite universe represented by the network's atom base,
+combined with constants in the source program. The library API does not accept
+a separate domain file for verification.
+
+The generated module exports `ann_query/2`, `ann_query_all/2`, and
+`ann_run/3`, along with the inspectable neuron, edge, recurrent-link, and trace
+facts. The library entry point exports `convert_file/3`, `convert_clauses/3`,
+`ann_verify/3`, `ann_export_json/2`, and `ann_extract/2`.
+
+`ann_extract(Network, Clauses)` returns ground facts and rules. The extracted
+program preserves represented positive and stratified-negative rules, so it can
+be passed to `convert_clauses/3` for round-trip checks. Extraction cannot recover
+the original variables, clause order, comments, source locations, domain
+declarations, or source formatting. `ann_extract(GeneratedModule, Clauses)` also
+accepts a loaded generated step-mode module.
 
 The library API exports `convert_file/3`, `convert_clauses/3`, and the
 `ann_verify/3` placeholder. `convert_file/3` accepts `domain(File)`, `out(File)`,
@@ -76,16 +174,25 @@ domain and source constants.
 ## Current limitations
 
 This is an in-progress subset of `pr1.txt`, not the v1 acceptance-complete
-converter. Nested compound/list terms, cut, dynamic database operations,
-I/O, `findall`/`bagof`/`setof`, and unsupported system built-ins are rejected.
-Only exact step mode is implemented. The emitted runtime computes the same
-stratified least-model closure symbolically from ground rules; the full
-explicit weighted-neuron encoding in `pr1.txt` is not finished.
+converter. The current finite universe is the union of source constants and
+values from `domain/2` and `range/3`; type labels are not used to constrain
+individual variables or predicate positions. Nested compound/list terms,
+cut, dynamic database operations, I/O, `findall`/`bagof`/`setof`, and unsupported
+system built-ins are rejected. Only exact step mode is implemented. Although
+translation emits inspectable neuron, edge, and recurrent-link facts, runtime
+evaluation computes stratified least-model closure from retained symbolic
+ground rules rather than evaluating those weighted facts.
 
-Sigmoid/tanh activation, the CILP weight-bound implementation, training,
-extraction, JSON export, full `ann_verify/3`, and the complete acceptance and
-random-property suites are not implemented. Consult [`STATUS.md`](STATUS.md)
-for the requirement-by-requirement list.
+Trace facts cover input and output neurons for each ground clause in which their
+atom appears, and hidden neurons for their corresponding ground clause. Clause
+IDs identify the clauses in the grounded network, not original variable-bearing
+source clauses. `ann_extract/2` and JSON export are implemented for the current
+step-mode schema; extraction returns represented ground rules, not original
+source text. Sigmoid/tanh activation, a verified CILP weight-bound implementation,
+and training are not implemented. Verification covers least-model agreement
+only for programs in the supported finite-domain subset.
+Consult
+[`STATUS.md`](STATUS.md) for the requirement-by-requirement list.
 
 ## Tests
 
@@ -97,35 +204,33 @@ swipl -q -s test/run_tests.pl
 
 The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
-mutual recursion over a bounded integer range, emitted-module queries, and
-conversion output, including a configured runtime step limit.
+mutual recursion over a bounded integer range, cyclic reachability through a
+fixpoint (including self-reachability), emitted-module queries and conversion
+output, JSON export and its network fields, the optional runtime step limit,
+input/hidden/output neuron trace facts, source/network equivalence and mismatch
+reporting, and extraction round trips for recursion, stratified negation, and
+generated modules. A fixed random seed also generates and verifies 200 bounded
+Datalog programs using at most six unary predicates and five constants; the
+generated rules include a positive self-cycle and stratified negation. The suite
+also verifies complete least-model agreement for the
+`ancestor`, `reach`, `even_odd`, `xor`, and `flies` acceptance examples, and
+checks rejection of the checked-in `win` non-stratified example. Run all current
+PlUnit tests with the command above. The ancestor quickstart exercises
+conversion, generated-module querying, source/network verification, and JSON
+generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
+negation, bounded mutual recursion, and cyclic recursive closure respectively.
+The `xor` example exercises stratified negation and verifies all four input
+pairs through the finite least model.
 
-Run the current checks from the repository root:
-
-```sh
-# PlUnit regression suite
-swipl -q -s test/run_tests.pl
-
-# Recursive ancestor conversion and ground query
-mkdir -p build
-swipl bin/prolog2ann.pl convert examples/ancestor.pl \
-  --domain examples/ancestor_domain.pl --mode step \
-  --out build/net_ancestor.pl --module net_ancestor
-swipl bin/prolog2ann.pl query build/net_ancestor.pl "ancestor(ann, dee)"
-
-# Mutual recursion over the supplied integer range
-swipl bin/prolog2ann.pl convert examples/even_odd.pl \
-  --domain examples/even_odd_domain.pl --mode step \
-  --out build/net_even_odd.pl --module net_even_odd
-swipl bin/prolog2ann.pl query build/net_even_odd.pl "even(4)"
-
-# Stratified negation and a bounded runtime
-swipl bin/prolog2ann.pl convert examples/flies.pl --mode step \
-  --steps 20 --out build/net_flies.pl --module net_flies
-swipl bin/prolog2ann.pl query build/net_flies.pl "flies(tweety)"
-```
-
-The PlUnit tests also cover expected rejections using `examples/cut.pl` and
-`examples/win.pl`. The broader acceptance programs (cyclic reachability, XOR,
-sigmoid training, extraction, JSON, and randomized equivalence) have not yet
-been implemented; see [`STATUS.md`](STATUS.md) for the remaining work.
+Run the ancestor example end to end using the quickstart. To impose a runtime
+limit, add `--step-limit 1` to `convert`; then call the generated module's
+`ann_run(Atoms, Steps, Reached)` to inspect whether its fixpoint was reached.
+The `verify` command accepts the source file and generated network file in
+that order. The current extraction API can be exercised from the Prolog top
+level after loading `prolog/prolog2ann.pl` and generating or converting a
+network: call `prolog2ann:ann_extract(Network, Clauses)` and then
+`prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
+sigmoid training remains to be implemented. Randomized equivalence is covered
+by the deterministic 200-program property test above. See
+[`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
+the remaining milestones.

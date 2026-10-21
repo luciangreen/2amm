@@ -23,18 +23,31 @@ run([query, NetworkFile, GoalText]) :-
     read_term_from_atom(GoalText, Goal, []),
     Module:ann_query(Goal, Truth),
     format('~q: ~q~n', [Goal, Truth]).
-run([verify, _Source, _Network]) :-
-    throw(error(not_implemented(verify), _)).
+run([verify, Source, NetworkFile]) :-
+    load_files(NetworkFile, []),
+    network_module(NetworkFile, Module),
+    prolog2ann:ann_verify(Source, Module, Result),
+    report_verification(Result).
 run(_) :-
     format(user_error,
-           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--steps N] --out FILE~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n',
+           'Usage: swipl bin/prolog2ann.pl convert SOURCE [--domain FILE] [--mode step] [--limit N] [--step-limit N|--steps N] --out FILE [--json FILE]~n       swipl bin/prolog2ann.pl query NETWORK.pl \"ground_atom\"~n       swipl bin/prolog2ann.pl verify SOURCE NETWORK.pl~n',
            []),
     halt(2).
+
+report_verification(equivalent) :-
+    format('Verified: source and network have the same least model.~n', []).
+report_verification(mismatch(Missing, Unexpected)) :-
+    format(user_error, 'Not equivalent.~n', []),
+    format(user_error, 'Missing from network: ~q~n', [Missing]),
+    format(user_error, 'Unexpected in network: ~q~n', [Unexpected]),
+    halt(1).
 
 parse_options([], []).
 parse_options(['--domain', File|Rest], [domain(File)|Options]) :-
     !, parse_options(Rest, Options).
 parse_options(['--out', File|Rest], [out(File)|Options]) :-
+    !, parse_options(Rest, Options).
+parse_options(['--json', File|Rest], [json(File)|Options]) :-
     !, parse_options(Rest, Options).
 parse_options(['--module', Name|Rest], [module(Module)|Options]) :-
     !, text_atom(Name, Module), parse_options(Rest, Options).
@@ -43,9 +56,11 @@ parse_options(['--mode', ModeString|Rest], [mode(Mode)|Options]) :-
 parse_options(['--limit', LimitString|Rest], [limit(Limit)|Options]) :-
     !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
     parse_options(Rest, Options).
-parse_options(['--steps', StepLimitString|Rest], [step_limit(StepLimit)|Options]) :-
-    !, text_string(StepLimitString, StepLimitText),
-    number_string(StepLimit, StepLimitText),
+parse_options(['--step-limit', LimitString|Rest], [step_limit(Limit)|Options]) :-
+    !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
+    parse_options(Rest, Options).
+parse_options(['--steps', LimitString|Rest], [step_limit(Limit)|Options]) :-
+    !, text_string(LimitString, LimitText), number_string(Limit, LimitText),
     parse_options(Rest, Options).
 parse_options([Unknown|_], _) :-
     throw(error(unknown_option(Unknown), _)).
