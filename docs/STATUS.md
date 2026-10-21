@@ -56,8 +56,8 @@ translation, input/hidden/output source traces, negation, XOR, mutual recursion
 over an integer range, JSON structure, step limits, equivalence/mismatch
 reporting, and extraction round trips for positive recursion, stratified
 negation, generated modules, and cyclic reachability. The cyclic example checks
-recursive self-reachability and that
-fixpoint evaluation completes within the default Herbrand-base-derived bound.
+recursive self-reachability and that fixpoint evaluation completes within the
+default Herbrand-base-derived bound.
 Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
 inspection output; sigmoid training and randomized equivalence are not yet
 implemented. Extraction returns represented ground rules only: it does not

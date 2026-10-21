@@ -72,9 +72,9 @@ library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
   fixpoint step reporting. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
 - Inspectable input, hidden, and output neuron facts, weighted edges,
-  recurrent links, and source traces mapping each neuron to every represented
-  ground clause containing its atom; optional JSON export of this current
-  step-mode representation.
+  recurrent links, and source traces mapping input/output neurons to clauses
+  mentioning their atoms and hidden neurons to their originating clauses;
+  optional JSON export of this current step-mode representation.
 - Source locations on parse-time unsupported-construct errors.
 - Source-equivalence verification for a `network/7` term or a loaded generated
   module, returning `equivalent` or `mismatch(Missing, Unexpected)`.
@@ -168,8 +168,7 @@ output, JSON export and its network fields, the optional runtime step limit,
 input/hidden/output neuron trace facts, source/network equivalence and mismatch
 reporting, and extraction round trips for recursion, stratified negation, and
 generated modules, plus XOR equivalence and query results. Run all current
-PlUnit tests with the command above. The
-ancestor quickstart exercises
+PlUnit tests with the command above. The ancestor quickstart exercises
 conversion, generated-module querying, source/network verification, and JSON
 generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
 negation, bounded mutual recursion, and cyclic recursive closure respectively.
