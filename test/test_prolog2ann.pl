@@ -10,6 +10,8 @@
 :- use_module('../prolog/prolog2ann/runtime').
 :- use_module(library(plunit)).
 :- use_module(library(http/json)).
+:- use_module(library(lists)).
+:- use_module(library(random)).
 
 :- dynamic examples_directory/1.
 
@@ -56,6 +58,11 @@ test(acceptance_examples_verify_least_models) :-
                    flies-none
                  ]),
            test_prolog2ann:verify_example(Name, Domain)).
+
+test(randomized_programs_verify_least_models) :-
+    set_random(seed(20261021)),
+    forall(between(1, 200, Seed),
+           test_prolog2ann:verify_random_program(Seed)).
 
 test(grounding_limit) :-
     test_prolog2ann:example(ancestor, File),
@@ -353,6 +360,112 @@ verify_example(Name, DomainName) :-
     prolog2ann:convert_file(File, Options, Network),
     prolog2ann:ann_verify(File, Network, Result),
     assertion(Result == equivalent).
+
+verify_random_program(Seed) :-
+    random_program(Clauses),
+    tmp_file(prolog2ann_source, Source),
+    tmp_file(prolog2ann_domain, Domain),
+    tmp_file(prolog2ann_network, NetworkFile),
+    format(atom(Module), 'property_network_~d', [Seed]),
+    setup_call_cleanup(
+        ( write_program(Source, Clauses),
+          write_domain(Domain)
+        ),
+        ( prolog2ann:convert_file(
+              Source,
+              [domain(Domain), out(NetworkFile), module(Module)],
+              _),
+          load_files(NetworkFile, []),
+          prolog2ann:ann_verify(Source, Module, Result),
+          assertion(Result == equivalent)
+        ),
+        ( unload_file(NetworkFile),
+          delete_file(Source),
+          delete_file(Domain),
+          delete_file(NetworkFile)
+        )).
+
+random_program(Clauses) :-
+    findall(Fact,
+            ( member(Predicate, [p, q]),
+              member(Constant, [a, b, c, d, e]),
+              random_between(0, 3, Choice),
+              Choice =:= 0,
+              Fact =.. [Predicate, Constant]
+            ),
+            RandomFacts),
+    random_between(1, 8, RuleCount),
+    random_rules(RuleCount, Rules),
+    random_recursive_rule(RecursiveRule),
+    random_negative_rule(NegativeRule),
+    append([[p(a)|RandomFacts], [RecursiveRule, NegativeRule], Rules],
+           Clauses).
+
+random_rules(0, []) :-
+    !.
+random_rules(Count, [Rule|Rest]) :-
+    random_rule(Rule),
+    Remaining is Count - 1,
+    random_rules(Remaining, Rest).
+
+random_rule((Head :- Body)) :-
+    random_element([r, s, t, u], HeadPredicate),
+    Head =.. [HeadPredicate, Variable],
+    random_between(1, 2, BodyLength),
+    random_body(BodyLength, Variable, Body).
+
+random_recursive_rule((Head :- Head)) :-
+    random_element([r, s, t, u], Predicate),
+    Head =.. [Predicate, _].
+
+random_negative_rule((Head :- \+ Goal)) :-
+    random_element([r, s, t, u], HeadPredicate),
+    random_element([p, q], BodyPredicate),
+    Head =.. [HeadPredicate, Variable],
+    Goal =.. [BodyPredicate, Variable].
+
+random_body(1, Variable, Literal) :-
+    !,
+    random_literal(Variable, Literal).
+random_body(Length, Variable, (Literal, Rest)) :-
+    random_literal(Variable, Literal),
+    Remaining is Length - 1,
+    random_body(Remaining, Variable, Rest).
+
+random_literal(Variable, Literal) :-
+    random_between(1, 5, Choice),
+    (   Choice =< 2
+    ->  random_element([p, q], Predicate)
+    ;   random_element([r, s, t, u], Predicate)
+    ),
+    Goal =.. [Predicate, Variable],
+    (   Choice =:= 2
+    ->  Literal = (\+ Goal)
+    ;   Literal = Goal
+    ).
+
+random_element(Elements, Element) :-
+    length(Elements, Length),
+    random_between(1, Length, Index),
+    nth1(Index, Elements, Element).
+
+write_program(File, Clauses) :-
+    setup_call_cleanup(
+        open(File, write, Stream, [encoding(utf8)]),
+        forall(member(Clause, Clauses),
+               ( write_term(Stream, Clause, [quoted(true), numbervars(true)]),
+                 write(Stream, '.'),
+                 nl(Stream)
+               )),
+        close(Stream)).
+
+write_domain(File) :-
+    setup_call_cleanup(
+        open(File, write, Stream, [encoding(utf8)]),
+        ( write(Stream, 'domain(constants, [a, b, c, d, e]).'),
+          nl(Stream)
+        ),
+        close(Stream)).
 
 temporary_network(Network, Module, Path) :-
     tmp_file(prolog2ann, Path),

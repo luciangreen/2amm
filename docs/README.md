@@ -189,7 +189,10 @@ fixpoint (including self-reachability), emitted-module queries and conversion
 output, JSON export and its network fields, the optional runtime step limit,
 input/hidden/output neuron trace facts, source/network equivalence and mismatch
 reporting, and extraction round trips for recursion, stratified negation, and
-generated modules. It also verifies complete least-model agreement for the
+generated modules. A fixed random seed also generates and verifies 200 bounded
+Datalog programs using at most six unary predicates and five constants; the
+generated rules include a positive self-cycle and stratified negation. The suite
+also verifies complete least-model agreement for the
 `ancestor`, `reach`, `even_odd`, `xor`, and `flies` acceptance examples, and
 checks rejection of the checked-in `win` non-stratified example. Run all current
 PlUnit tests with the command above. The ancestor quickstart exercises
@@ -207,7 +210,7 @@ that order. The current extraction API can be exercised from the Prolog top
 level after loading `prolog/prolog2ann.pl` and generating or converting a
 network: call `prolog2ann:ann_extract(Network, Clauses)` and then
 `prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
-Additional acceptance coverage, sigmoid training, and randomized equivalence
-remain to be added. See
+Sigmoid training remains to be implemented. Randomized equivalence is covered
+by the deterministic 200-program property test above. See
 [`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
 the remaining milestones.
