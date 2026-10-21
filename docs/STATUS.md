@@ -29,9 +29,8 @@ not yet satisfy the v1 acceptance criteria in full.
    reports the network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Expand acceptance coverage beyond the current examples; add sigmoid/training
-   tests and randomized property tests. Add CI, complete PlDoc coverage, and
-   release/pack metadata checks before claiming M1–M6 complete.
+4. Add sigmoid/training tests after implementing M4. Add CI, complete PlDoc
+   coverage, and release/pack metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -59,8 +58,9 @@ negation, generated modules, and cyclic reachability. The cyclic example checks
 recursive self-reachability and that fixpoint evaluation completes within the
 default Herbrand-base-derived bound.
 Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
-inspection output; sigmoid training and randomized equivalence are not yet
-implemented. Extraction returns represented ground rules only: it does not
+inspection output; sigmoid training is not yet implemented. The suite now
+includes 200 deterministic randomized least-model equivalence checks.
+Extraction returns represented ground rules only: it does not
 reconstruct the source's variable names, comments, source order, or domain
 declarations.
 
@@ -79,7 +79,7 @@ These checks extend the current regression coverage; they do not complete the
 remaining v1 requirements below. The main implementation milestones still
 outstanding are typed finite domains and bounded compound terms, execution of
 the explicit weighted network, verified sigmoid/tanh support and training,
-randomized equivalence coverage, CI, and release readiness.
+CI, and release readiness.
 
 ## Latest implementation update
 
@@ -98,3 +98,11 @@ Source trace facts now cover each input and output neuron for every ground
 clause where its atom occurs, as well as each hidden neuron for its clause.
 These trace clause identifiers refer to the grounded network clauses; the
 original variable-bearing source clauses are not reconstructed.
+
+The test suite now performs deterministic property-style checking of 200
+generated finite Datalog programs. The generator stays within six unary
+predicates and five constants and includes recursion and stratified negation;
+each generated module is compared against the source program's least model.
+This completes the random-program count in the current acceptance criteria,
+but does not replace the still-pending typed-domain, weighted-runtime, sigmoid,
+training, CI, or release work listed above.
