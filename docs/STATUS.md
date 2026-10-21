@@ -21,17 +21,17 @@ not yet satisfy the v1 acceptance criteria in full.
 
 ## Remaining work
 
-1. Finish typed-domain inference, integer binding/range semantics, bounded
-   lists/compound terms, and the required unsupported-syntax and stratification
-   diagnostics. The current grounding universe is global.
+1. Finish typed-domain inference and variable binding/range semantics; the
+   current grounding universe is global. Implement bounded lists/compound terms
+   and complete the required unsupported-syntax diagnostics.
 2. Replace symbolic ground-rule execution with evaluation of the explicit
    weighted input/hidden/output neuron model and recurrent links. Complete
    neuron-to-clause traceability; the JSON currently reports the available
    network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Add the remaining acceptance examples (including XOR), sigmoid/training
-   tests, randomized property tests, CI, complete PlDoc coverage, and
+4. Expand acceptance coverage beyond the current examples; add sigmoid/training
+   tests and randomized property tests. Add CI, complete PlDoc coverage, and
    release/pack metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
@@ -53,15 +53,16 @@ does not converge within that limit reports `Reached = false`; `ann_query/2`
 and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 
 The PlUnit suite also covers parser diagnostics, grounding limits, weighted
-translation, negation, mutual recursion over an integer range, JSON structure,
-step limits, equivalence/mismatch reporting, and extraction round trips for
-positive recursion, stratified negation, generated modules, and cyclic
+translation, negation, XOR, mutual recursion over an integer range, JSON
+structure, step limits, equivalence/mismatch reporting, and extraction round
+trips for positive recursion, stratified negation, generated modules, and cyclic
 reachability. The cyclic example checks recursive self-reachability and that
 fixpoint evaluation completes within the default Herbrand-base-derived bound.
 Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
 inspection output; sigmoid training and randomized equivalence are not yet
-implemented. Extraction returns ground rules only: it does not reconstruct the
-source's variable names, comments, source order, or domain declarations.
+implemented. Extraction returns represented ground rules only: it does not
+reconstruct the source's variable names, comments, source order, or domain
+declarations.
 
 The full requirements' acceptance tests must not be treated as passing merely
 because these current tests pass.
@@ -73,3 +74,8 @@ in-memory `network/7` terms and loaded generated modules. It returns ground
 clauses from the network rule facts and is tested by re-converting the result,
 including a stratified-negation case. This is not recovery of original source
 text and does not change the symbolic ground-rule runtime.
+
+The finite-domain XOR acceptance example is covered by an automated test for
+the four truth-table outcomes and least-model equivalence. This adds an
+acceptance example; it does not add sigmoid-mode support or weighted-neuron
+execution.

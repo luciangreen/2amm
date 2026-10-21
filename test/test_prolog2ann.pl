@@ -83,6 +83,24 @@ test(stratified_negation_and_query) :-
         ),
         ( unload_file(Path), delete_file(Path) )).
 
+test(xor_acceptance_and_equivalence) :-
+    test_prolog2ann:example(xor, File),
+    prolog2ann:convert_file(File, [], Network),
+    prolog2ann:ann_verify(File, Network, equivalent),
+    test_prolog2ann:temporary_network(Network, Module, Path),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann_runtime:ann_query(Module, xor(0, 1), true),
+          prolog2ann_runtime:ann_query(Module, xor(1, 0), true),
+          prolog2ann_runtime:ann_query(Module, xor(0, 0), false),
+          prolog2ann_runtime:ann_query(Module, xor(1, 1), false),
+          prolog2ann_runtime:ann_query_all(Module, xor(X, Y), Solutions),
+          assertion(var(X)),
+          assertion(var(Y)),
+          assertion(Solutions == [xor(0, 1), xor(1, 0)])
+        ),
+        ( unload_file(Path), delete_file(Path) )).
+
 test(mutual_recursion_with_integer_range) :-
     test_prolog2ann:example(even_odd, File),
     test_prolog2ann:example(even_odd_domain, Domain),
