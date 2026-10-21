@@ -2,7 +2,8 @@
           [ convert_file/3,
             convert_clauses/3,
             ann_verify/3,
-            ann_export_json/2
+            ann_export_json/2,
+            ann_extract/2
           ]).
 
 :- use_module('prolog2ann/parse').
@@ -11,6 +12,7 @@
 :- use_module('prolog2ann/translate').
 :- use_module('prolog2ann/emit').
 :- use_module('prolog2ann/json_export').
+:- use_module('prolog2ann/extract').
 :- use_module('prolog2ann/runtime').
 :- use_module(library(lists)).
 :- use_module(library(error)).
@@ -54,6 +56,12 @@ convert_file(Source, Options, Network) :-
 % JSON.
 ann_export_json(File, Network) :-
     export_json(File, Network).
+
+%! ann_extract(+Network, -Clauses) is det.
+%
+% Reconstruct ground clauses from a step-mode network term or generated module.
+ann_extract(Network, Clauses) :-
+    prolog2ann_extract:ann_extract(Network, Clauses).
 
 %! convert_clauses(+Clauses, +Options, -Network) is det.
 %

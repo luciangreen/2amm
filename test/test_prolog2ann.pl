@@ -217,6 +217,50 @@ test(verify_reports_model_difference) :-
     assertion(Missing \= []),
     assertion(memberchk(p(a), Unexpected)).
 
+test(extract_round_trip_ancestor) :-
+    test_prolog2ann:example(ancestor, File),
+    test_prolog2ann:example(ancestor_domain, Domain),
+    prolog2ann:convert_file(File, [domain(Domain)], Network),
+    prolog2ann:ann_extract(Network, Clauses),
+    prolog2ann:convert_clauses(Clauses, [], ExtractedNetwork),
+    assertion(Network = network(Atoms, Rules, Strata, _, _, _, _)),
+    assertion(ExtractedNetwork = network(ExtractedAtoms, ExtractedRules,
+                                         ExtractedStrata, _, _, _, _)),
+    assertion(Atoms == ExtractedAtoms),
+    assertion(Rules == ExtractedRules),
+    assertion(Strata == ExtractedStrata).
+
+test(extract_round_trip_stratified_negation) :-
+    test_prolog2ann:example(flies, File),
+    prolog2ann:convert_file(File, [], Network),
+    prolog2ann:ann_extract(Network, Clauses),
+    prolog2ann:convert_clauses(Clauses, [], ExtractedNetwork),
+    assertion(Network = network(Atoms, Rules, Strata, _, _, _, _)),
+    assertion(ExtractedNetwork = network(ExtractedAtoms, ExtractedRules,
+                                         ExtractedStrata, _, _, _, _)),
+    assertion(Atoms == ExtractedAtoms),
+    assertion(Rules == ExtractedRules),
+    assertion(Strata == ExtractedStrata).
+
+test(extract_from_generated_module) :-
+    test_prolog2ann:example(ancestor, File),
+    test_prolog2ann:example(ancestor_domain, Domain),
+    tmp_file(prolog2ann, Output),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann:convert_file(
+              File,
+              [domain(Domain), out(Output), module(extracted_generated)],
+              Network),
+          load_files(Output, []),
+          prolog2ann:ann_extract(extracted_generated, Clauses),
+          prolog2ann:ann_extract(Network, Expected),
+          assertion(Clauses == Expected)
+        ),
+        ( unload_file(Output),
+          ( exists_file(Output) -> delete_file(Output) ; true )
+        )).
+
 :- end_tests(prolog2ann).
 
 example(Name, File) :-
