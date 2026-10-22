@@ -13,14 +13,15 @@ Conversion is currently split into independently loadable SWI-Prolog modules:
 4. `translate.pl` builds a deterministic network model from the ground
    clauses, including input/output/hidden neuron facts, weighted edges,
    recurrent links, and source trace facts.
-5. `emit.pl` serializes a Prolog module. `runtime.pl` evaluates each stratum to
-   a least fixpoint and provides query APIs.
+5. `emit.pl` serializes a Prolog module. `runtime.pl` evaluates each stratum's
+   weighted input, hidden, and output neurons with recurrent links to a least
+   fixpoint and provides query APIs.
 
 The initial implementation prioritizes exact, finite step-mode answers. The
-output includes the explicit step-mode neuron and edge representation, while
-the runtime currently computes closure from retained symbolic ground rules
-rather than evaluating those edges. The output is independent of the source
-program but imports the generic runtime library.
+runtime evaluates the explicit step-mode neuron, edge, and recurrent-link
+representation. Symbolic ground rules remain in the emitted module to identify
+predicate strata and support verification and extraction. The output is
+independent of the source program but imports the generic runtime library.
 
 The current grounding universe is global rather than type-directed. A
 variable-free program can still be converted without a domain file; a program
