@@ -20,7 +20,7 @@ emit_network(File, Module,
     setup_call_cleanup(
         open(File, write, Stream, [encoding(utf8)]),
         %! emit_terms(+Stream, +Module, +Atoms, +Rules, +Strata, +Traces,
-        %!            +Neurons, +Edges, +Recurrent, +StepLimit) is det.
+        %            +Neurons, +Edges, +Recurrent, +StepLimit) is det.
         %
         % Serialize module metadata, network facts, and runtime wrappers.
         emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,

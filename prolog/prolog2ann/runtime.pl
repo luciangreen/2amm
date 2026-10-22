@@ -64,7 +64,7 @@ module_step_limit(Module, Base, Limit) :-
     ).
 
 %! run_strata(+Strata, +Module, +Lower, +Base, +Limit, -Model,
-%!            -Steps, -Reached) is det.
+%            -Steps, -Reached) is det.
 %
 % Close each stratum in order and stop if a configured limit is exhausted.
 run_strata([], _, Model, _, _, Model, 0, true).
@@ -79,14 +79,14 @@ run_strata([Stratum|Rest], Module, Lower, Base, Limit, Model, Steps, Reached) :-
     ).
 
 %! close_stratum(+Module, +Stratum, +Current, +Base, +Limit,
-%!               -Model, -Steps, -Reached) is det.
+%               -Model, -Steps, -Reached) is det.
 %
 % Compute one stratum's closure using the lower-stratum model as input.
 close_stratum(Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-
     close_round(1, Module, Stratum, Current, Base, Limit, Model, Steps, Reached).
 
 %! close_round(+Step, +Module, +Stratum, +Current, +Base, +Limit,
-%!             -Model, -Steps, -Reached) is det.
+%             -Model, -Steps, -Reached) is det.
 %
 % Apply one immediate-consequence round and detect stability or limit exhaustion.
 close_round(Step, Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-

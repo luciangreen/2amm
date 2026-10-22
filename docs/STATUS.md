@@ -29,8 +29,9 @@ not yet satisfy the v1 acceptance criteria in full.
    reports the network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Add sigmoid/training tests after implementing M4, complete PlDoc coverage,
-   and finish release/pack metadata checks before claiming M1–M6 complete.
+4. Add sigmoid/training tests after implementing M4, complete any remaining
+   public API documentation and warning checks, and finish release/pack metadata
+   checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -80,6 +81,10 @@ remaining v1 requirements below. The main implementation milestones still
 outstanding are typed finite domains and bounded compound terms, execution of
 the explicit weighted network, verified sigmoid/tanh support and training,
 CI, and release readiness.
+
+Pipeline and runtime helper predicates now have PlDoc summaries. This improves
+code-level documentation but does not change runtime behavior or close the
+typed-domain, compound-term, weighted-runtime, or sigmoid/training gaps.
 
 ## Latest implementation update
 

@@ -154,11 +154,14 @@ the original variables, clause order, comments, source locations, domain
 declarations, or source formatting. `ann_extract(GeneratedModule, Clauses)` also
 accepts a loaded generated step-mode module.
 
-The library API exports `convert_file/3`, `convert_clauses/3`, and the
-`ann_verify/3` placeholder. `convert_file/3` accepts `domain(File)`, `out(File)`,
-`module(Name)`, `mode(step)`, `limit(MaxAtoms)`, and `step_limit(MaxRounds)`.
+The library module exports `convert_file/3`, `convert_clauses/3`,
+`ann_verify/3`, `ann_export_json/2`, and `ann_extract/2`. `convert_file/3`
+accepts `domain(File)`, `out(File)`, `json(File)`, `module(Name)`,
+`mode(step)`, `limit(MaxAtoms)`, and `step_limit(MaxRounds)`.
 `convert_clauses/3` accepts `domain_values(Values)`, `mode(step)`, and
-`limit(MaxAtoms)`. The limits must be positive integers.
+`limit(MaxAtoms)`. The limits must be positive integers. Generated modules
+provide their own `ann_query/2`, `ann_query_all/2`, and `ann_run/3` predicates;
+these query APIs are not exported from the converter library module.
 
 Example bounded input:
 

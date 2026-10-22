@@ -20,8 +20,8 @@
 %! convert_file(+Source, +Options, -Network) is det.
 %
 % Convert a finite-domain Prolog file to a step-mode network. Options may
-% contain domain(File), out(File), json(File), module(Name), and
-% limit(MaxAtoms).
+% contain domain(File), out(File), json(File), module(Name), mode(step),
+% limit(MaxAtoms), and step_limit(MaxRounds).
 convert_file(Source, Options, Network) :-
     option_value(mode, Options, step, Mode),
     ( Mode == step -> true ; throw(error(unsupported_mode(Mode), _)) ),
@@ -66,6 +66,7 @@ ann_extract(Network, Clauses) :-
 %! convert_clauses(+Clauses, +Options, -Network) is det.
 %
 % Convert in-memory facts and rules using the same finite-domain pipeline.
+% Options may contain domain_values(Values), mode(step), and limit(MaxAtoms).
 convert_clauses(Clauses, Options, Network) :-
     maplist(as_parsed_clause, Clauses, Parsed),
     normalise(Parsed, Normalised),
@@ -97,6 +98,9 @@ ann_verify(Source, Network, Result) :-
     ;   Result = mismatch(Missing, Unexpected)
     ).
 
+%! network_contents(+NetworkOrModule, -Atoms, -Rules, -Strata, -Module) is det.
+%
+% Normalize a network term or loaded generated module to its model data.
 network_contents(network(Atoms, Rules, Strata, _, _, _, _),
                  Atoms, Rules, Strata, none) :-
     !.
@@ -123,6 +127,9 @@ network_contents(Module, Atoms, Rules, Strata, Module) :-
     ;   throw(error(domain_error(generated_network_module, Module), _))
     ).
 
+%! network_domain_values(+Atoms, -Values) is det.
+%
+% Extract and sort the atomic constants represented in a network base.
 network_domain_values(Atoms, Values) :-
     findall(Value,
             ( member(Atom, Atoms),
@@ -132,6 +139,9 @@ network_domain_values(Atoms, Values) :-
             Values0),
     sort(Values0, Values).
 
+%! source_rules(+GroundClauses, -Rules, -Strata) is det.
+%
+% Convert grounded source clauses to sorted symbolic rules and strata.
 source_rules(Ground, Rules, Strata) :-
     findall(rule(Head, Positive, Negative, Stratum),
             member(ground_clause(Head, Positive, Negative, _, _, _, _, Stratum),
@@ -141,6 +151,9 @@ source_rules(Ground, Rules, Strata) :-
     findall(Stratum, member(rule(_, _, _, Stratum), Rules), Strata0),
     sort(Strata0, Strata).
 
+%! network_model(+Module, +Rules, +Strata, -Model) is det.
+%
+% Obtain a model by closure for a term network or runtime evaluation for a module.
 network_model(none, Rules, Strata, Model) :-
     !,
     least_model(Rules, Strata, Model).
@@ -151,14 +164,23 @@ network_model(Module, _, _, Model) :-
     ;   throw(error(no_fixpoint(Steps), _))
     ).
 
+%! least_model(+Rules, +Strata, -Model) is det.
+%
+% Compute the least model by evaluating each stratum in order.
 least_model(Rules, Strata, Model) :-
     least_model_strata(Strata, Rules, [], Model).
 
+%! least_model_strata(+Strata, +Rules, +Lower, -Model) is det.
+%
+% Close each stratum, carrying its model forward as the lower-stratum model.
 least_model_strata([], _, Model, Model).
 least_model_strata([Stratum|Rest], Rules, Lower, Model) :-
     least_model_stratum(Rules, Stratum, Lower, Closed),
     least_model_strata(Rest, Rules, Closed, Model).
 
+%! least_model_stratum(+Rules, +Stratum, +Current, -Model) is det.
+%
+% Repeatedly apply rules of one positive stratum until no atoms are added.
 least_model_stratum(Rules, Stratum, Current, Model) :-
     findall(Head,
             ( member(rule(Head, Positive, Negative, Stratum), Rules),
@@ -173,23 +195,38 @@ least_model_stratum(Rules, Stratum, Current, Model) :-
     ;   least_model_stratum(Rules, Stratum, Next, Model)
     ).
 
+%! all_present(+Atoms, +Model) is semidet.
+%
+% Succeed when every atom is a member of the current model.
 all_present([], _).
 all_present([Atom|Rest], Atoms) :-
     memberchk(Atom, Atoms),
     all_present(Rest, Atoms).
 
+%! all_absent(+Atoms, +Model) is semidet.
+%
+% Succeed when none of the atoms is a member of the current model.
 all_absent([], _).
 all_absent([Atom|Rest], Atoms) :-
     \+ memberchk(Atom, Atoms),
     all_absent(Rest, Atoms).
 
+%! domain_values(+DomainFile, -Values) is det.
+%
+% Read finite domain values, or return an empty list when no file was supplied.
 domain_values(none, []) :- !.
 domain_values(File, Values) :-
     read_domain(File, Values).
 
+%! as_parsed_clause(+Clause, -ParsedClause) is det.
+%
+% Wrap an in-memory clause in the metadata shape used by the parser pipeline.
 as_parsed_clause((Head :- Body), clause(Head, Body, [], '<memory>', 1)) :- !.
 as_parsed_clause(Head, clause(Head, true, [], '<memory>', 1)).
 
+%! option_value(+Name, +Options, +Default, -Value) is det.
+%
+% Select the first option with Name, or return Default when absent.
 option_value(Name, Options, Default, Value) :-
     ( member(Option, Options), Option =.. [Name, Value] -> true
     ; Value = Default
