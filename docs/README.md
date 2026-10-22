@@ -204,9 +204,10 @@ swipl -q -s test/run_tests.pl
 
 The current suite exercises parsing, cut rejection with a source line,
 negative-cycle detection, the grounding-size limit, stratified negation,
-mutual recursion over a bounded integer range, cyclic reachability through a
-fixpoint (including self-reachability), emitted-module queries and conversion
-output, JSON export and its network fields, the optional runtime step limit,
+mutual recursion over a bounded integer range, bounded `is/2` arithmetic and
+integer comparisons, cyclic reachability through a fixpoint (including
+self-reachability), emitted-module queries and conversion output, JSON export
+and its network fields, the optional runtime step limit,
 input/hidden/output neuron trace facts, source/network equivalence and mismatch
 reporting, and extraction round trips for recursion, stratified negation, and
 generated modules. A fixed random seed also generates and verifies 200 bounded
@@ -221,6 +222,11 @@ generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
 negation, bounded mutual recursion, and cyclic recursive closure respectively.
 The `xor` example exercises stratified negation and verifies all four input
 pairs through the finite least model.
+
+The GitHub Actions workflow runs this same PlUnit command on Ubuntu after
+installing the available SWI-Prolog package. You can run the suite locally with
+the command above; the conversion, query, verification, and JSON commands
+earlier in this guide are additional end-to-end checks.
 
 Run the ancestor example end to end using the quickstart. To impose a runtime
 limit, add `--step-limit 1` to `convert`; then call the generated module's
