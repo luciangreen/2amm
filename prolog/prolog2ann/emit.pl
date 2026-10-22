@@ -19,6 +19,10 @@ emit_network(File, Module,
     step_limit_option(Options, StepLimit),
     setup_call_cleanup(
         open(File, write, Stream, [encoding(utf8)]),
+        %! emit_terms(+Stream, +Module, +Atoms, +Rules, +Strata, +Traces,
+        %            +Neurons, +Edges, +Recurrent, +StepLimit) is det.
+        %
+        % Serialize module metadata, network facts, and runtime wrappers.
         emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
                   Neurons, Edges, Recurrent, StepLimit),
         close(Stream)).
@@ -42,6 +46,9 @@ emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
     format(Stream, 'ann_query_all(Pattern, Solutions) :- prolog2ann_runtime:ann_query_all(~q, Pattern, Solutions).~n', [Module]),
     format(Stream, 'ann_run(Atoms, Steps, Reached) :- prolog2ann_runtime:run_network(~q, Atoms, Steps, Reached).~n', [Module]).
 
+%! step_limit_option(+Options, -StepLimit) is det.
+%
+% Read and validate an optional positive runtime step limit.
 step_limit_option(Options, StepLimit) :-
     (   member(step_limit(Value), Options)
     ->  must_be(positive_integer, Value),
@@ -50,22 +57,40 @@ step_limit_option(Options, StepLimit) :-
     StepLimit = none
     ).
 
+%! emit_step_limit(+Stream, +Limit) is det.
+%
+% Emit a runtime limit fact when a limit was configured.
 emit_step_limit(_, none) :- !.
 emit_step_limit(Stream, Limit) :-
     format(Stream, 'network_step_limit(~d).~n', [Limit]).
 
+%! emit_atom(+Stream, +Atom) is det.
+%
+% Emit one ground atom as a network-base fact.
 emit_atom(Stream, Atom) :-
     write_fact(Stream, network_atom(Atom)).
 
+%! emit_rule(+Stream, +Rule) is det.
+%
+% Emit one symbolic ground-rule fact.
 emit_rule(Stream, rule(Head, Positive, Negative, Stratum)) :-
     write_fact(Stream, network_rule(Head, Positive, Negative, Stratum)).
 
+%! emit_stratum(+Stream, +Stratum) is det.
+%
+% Emit one predicate stratum fact.
 emit_stratum(Stream, Stratum) :-
     write_fact(Stream, network_stratum(Stratum)).
 
+%! emit_trace(+Stream, +Trace) is det.
+%
+% Emit one neuron-to-source trace fact.
 emit_trace(Stream, Trace) :-
     write_fact(Stream, Trace).
 
+%! write_fact(+Stream, +Term) is det.
+%
+% Write a quoted Prolog fact followed by its full stop and newline.
 write_fact(Stream, Term) :-
     write_term(Stream, Term, [quoted(true), numbervars(true)]),
     write(Stream, '.'),

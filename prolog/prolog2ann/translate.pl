@@ -44,6 +44,10 @@ translate(GroundClauses, Atoms,
     append([PositiveEdges, NegativeEdges, HeadEdges], Edges),
     findall(recurrent(out(Atom), in(Atom)), member(Atom, Atoms), Recurrent).
 
+%! source_traces(+GroundClauses, -Traces) is det.
+%
+% Map hidden neurons and participating input/output neurons to grounded
+% clauses and their source locations.
 source_traces(GroundClauses, Traces) :-
     findall(trace(hidden(Id), Id, File, Line),
             nth1(Id, GroundClauses,
@@ -61,5 +65,8 @@ source_traces(GroundClauses, Traces) :-
     append(HiddenTraces, AtomTraces, Traces0),
     sort(Traces0, Traces).
 
+%! atom_neurons(+Atom, -Neurons) is det.
+%
+% Create the input and output neuron records for one represented atom.
 atom_neurons(Atom, [neuron(in(Atom), input, linear, 0.0),
                     neuron(out(Atom), output, step, 0.5)]).
