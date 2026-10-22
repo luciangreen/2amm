@@ -46,8 +46,7 @@ test(reject_win_acceptance_example) :-
     test_prolog2ann:example(win, File),
     prolog2ann_parse:parse_file(File, Parsed),
     catch(prolog2ann_normalise:normalise(Parsed, _), Error, true),
-    assertion(Error = error(non_stratified_negation(Cycle), file(File, 4))),
-    assertion(memberchk(win/1, Cycle)).
+    assertion(Error = error(non_stratified_negation([win/1]), file(File, 4))).
 
 test(acceptance_examples_verify_least_models) :-
     forall(member(Name-Domain,

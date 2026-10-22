@@ -13,12 +13,13 @@ parse_file(File, Clauses) :-
         close(Stream)).
 
 read_clauses(Stream, File, Clauses) :-
-    stream_property(Stream, position(Position)),
-    stream_position_data(line_count, Position, Line),
-    read_term(Stream, Term, [variable_names(Names), syntax_errors(error)]),
+    read_term(Stream, Term,
+              [variable_names(Names), syntax_errors(error),
+               term_position(TermPosition)]),
     (   Term == end_of_file
     ->  Clauses = []
-    ;   validate_clause(Term, File, Line, Head, Body),
+    ;   stream_position_data(line_count, TermPosition, Line),
+        validate_clause(Term, File, Line, Head, Body),
         Clauses = [clause(Head, Body, Names, File, Line)|Rest],
         read_clauses(Stream, File, Rest)
     ).
