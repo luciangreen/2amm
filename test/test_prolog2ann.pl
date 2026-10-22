@@ -89,6 +89,22 @@ test(translation_includes_weighted_neurons) :-
     assertion(memberchk(edge(hidden(2), out(q(a)), 1.0), Edges)),
     assertion(memberchk(recurrent(out(p(a)), in(p(a))), Recurrent)).
 
+test(weighted_network_facts_drive_runtime) :-
+    tmp_file(weighted_runtime_probe, Output),
+    test_prolog2ann:write_weighted_probe(Output),
+    load_files(Output, []),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann_runtime:run_network(
+              weighted_runtime_probe, Atoms, _, true),
+          assertion(Atoms == [p(a)]),
+          prolog2ann_runtime:ann_query(
+              weighted_runtime_probe, q(a), false)
+        ),
+        ( unload_file(Output),
+          ( exists_file(Output) -> delete_file(Output) ; true )
+        )).
+
 test(neuron_traceability_covers_all_layers) :-
     prolog2ann:convert_clauses([p(a), (q(X) :- p(X))],
                                [domain_values([a])],
@@ -491,3 +507,30 @@ temporary_network(Network, Module, Path) :-
     Module = test_generated_network,
     prolog2ann_emit:emit_network(Path, Module, Network),
     load_files(Path, []).
+
+write_weighted_probe(File) :-
+    Terms = [ (:- module(weighted_runtime_probe, [])),
+              (:- use_module(library(prolog2ann/runtime))),
+              network_atom(p(a)),
+              network_atom(q(a)),
+              network_rule(p(a), [], [], 0),
+              network_rule(q(a), [p(a)], [], 0),
+              network_stratum(0),
+              neuron(out(p(a)), output, step, 0.5),
+              neuron(out(q(a)), output, step, 0.5),
+              neuron(hidden(1), hidden, step, -0.5),
+              neuron(hidden(2), hidden, step, 0.5),
+              edge(hidden(1), out(p(a)), 1.0),
+              edge(in(p(a)), hidden(2), 0.0),
+              edge(hidden(2), out(q(a)), 1.0),
+              recurrent(out(p(a)), in(p(a))),
+              recurrent(out(q(a)), in(q(a)))
+            ],
+    setup_call_cleanup(
+        open(File, write, Stream, [encoding(utf8)]),
+        forall(member(Term, Terms),
+               ( write_term(Stream, Term, [quoted(true)]),
+                 write(Stream, '.'),
+                 nl(Stream)
+               )),
+        close(Stream)).

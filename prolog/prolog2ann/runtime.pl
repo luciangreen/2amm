@@ -38,8 +38,15 @@ run_network(Module, Atoms, Steps, Reached) :-
     sort(AtomList0, Base),
     module_facts(Module, Stratum, network_stratum(Stratum), Strata0),
     sort(Strata0, Strata),
+    module_facts(Module, neuron(Id, Layer, Activation, Threshold),
+                 neuron(Id, Layer, Activation, Threshold), Neurons),
+    module_facts(Module, edge(From, To, Weight),
+                 edge(From, To, Weight), Edges),
+    module_facts(Module, recurrent(From, To),
+                 recurrent(From, To), Recurrent),
     module_step_limit(Module, Base, Limit),
-    run_strata(Strata, Module, [], Base, Limit, Model, Steps, Reached),
+    run_strata(Strata, Module, [], Base, Limit, Neurons, Edges, Recurrent,
+               Model, Steps, Reached),
     Atoms = Model.
 
 %! module_facts(+Module, ?Template, +Goal, -Facts) is det.
@@ -63,34 +70,40 @@ module_step_limit(Module, Base, Limit) :-
         Limit is BaseSize + 1
     ).
 
-%! run_strata(+Strata, +Module, +Lower, +Base, +Limit, -Model,
-%            -Steps, -Reached) is det.
+%! run_strata(+Strata, +Module, +Lower, +Base, +Limit, +Neurons, +Edges,
+%            +Recurrent, -Model, -Steps, -Reached) is det.
 %
 % Close each stratum in order and stop if a configured limit is exhausted.
-run_strata([], _, Model, _, _, Model, 0, true).
-run_strata([Stratum|Rest], Module, Lower, Base, Limit, Model, Steps, Reached) :-
-    close_stratum(Module, Stratum, Lower, Base, Limit, Closed, Used, Reached0),
+run_strata([], _, Model, _, _, _, _, _, Model, 0, true).
+run_strata([Stratum|Rest], Module, Lower, Base, Limit, Neurons, Edges,
+           Recurrent, Model, Steps, Reached) :-
+    close_stratum(Module, Stratum, Lower, Base, Limit, Neurons, Edges,
+                  Recurrent, Closed, Used, Reached0),
     (   Reached0 == true
-    ->  run_strata(Rest, Module, Closed, Base, Limit, Model, Remaining, Reached),
+    ->  run_strata(Rest, Module, Closed, Base, Limit, Neurons, Edges,
+                   Recurrent, Model, Remaining, Reached),
         Steps is Used + Remaining
     ;   Model = Closed,
         Steps = Used,
         Reached = false
     ).
 
-%! close_stratum(+Module, +Stratum, +Current, +Base, +Limit,
-%               -Model, -Steps, -Reached) is det.
+%! close_stratum(+Module, +Stratum, +Current, +Base, +Limit, +Neurons,
+%               +Edges, +Recurrent, -Model, -Steps, -Reached) is det.
 %
 % Compute one stratum's closure using the lower-stratum model as input.
-close_stratum(Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-
-    close_round(1, Module, Stratum, Current, Base, Limit, Model, Steps, Reached).
+close_stratum(Module, Stratum, Current, Base, Limit, Neurons, Edges,
+              Recurrent, Model, Steps, Reached) :-
+    close_round(1, Module, Stratum, Current, Base, Limit, Neurons, Edges,
+                Recurrent, Model, Steps, Reached).
 
-%! close_round(+Step, +Module, +Stratum, +Current, +Base, +Limit,
-%             -Model, -Steps, -Reached) is det.
+%! close_round(+Step, +Module, +Stratum, +Current, +Base, +Limit, +Neurons,
+%             +Edges, +Recurrent, -Model, -Steps, -Reached) is det.
 %
 % Apply one immediate-consequence round and detect stability or limit exhaustion.
-close_round(Step, Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-
-    applicable_heads(Module, Stratum, Current, Heads),
+close_round(Step, Module, Stratum, Current, Base, Limit, Neurons, Edges,
+            Recurrent, Model, Steps, Reached) :-
+    applicable_heads(Module, Stratum, Current, Neurons, Edges, Recurrent, Heads),
     append(Current, Heads, Combined),
     sort(Combined, Next),
     (   Next == Current
@@ -102,34 +115,63 @@ close_round(Step, Module, Stratum, Current, Base, Limit, Model, Steps, Reached) 
         Steps = Step,
         Reached = false
     ;   NextStep is Step + 1,
-        close_round(NextStep, Module, Stratum, Next, Base, Limit,
-                    Model, Steps, Reached)
+        close_round(NextStep, Module, Stratum, Next, Base, Limit, Neurons,
+                    Edges, Recurrent, Model, Steps, Reached)
     ).
 
-%! applicable_heads(+Module, +Stratum, +Current, -Heads) is det.
+%! applicable_heads(+Module, +Stratum, +Current, +Neurons, +Edges, +Recurrent,
+%                  -Heads) is det.
 %
-% Collect heads whose positive and negative body atoms match the current model.
-applicable_heads(Module, Stratum, Current, Heads) :-
+% Collect output atoms activated by the weighted neurons in this stratum.
+applicable_heads(Module, Stratum, Current, Neurons, Edges, Recurrent, Heads) :-
+    fired_hidden(Neurons, Edges, Recurrent, Current, Hidden),
     findall(Head,
-            ( Module:network_rule(Head, Positive, Negative, Stratum),
-              all_members(Positive, Current),
-              no_members(Negative, Current)
+            ( Module:network_rule(Head, _, _, Stratum),
+              output_fires(Head, Neurons, Edges, Hidden)
             ),
             Heads0),
     sort(Heads0, Heads).
 
-%! all_members(+Items, +Set) is semidet.
+%! fired_hidden(+Neurons, +Edges, +Recurrent, +Current, -Hidden) is det.
 %
-% Succeed when every item occurs in the supplied set.
-all_members([], _).
-all_members([Atom|Rest], Atoms) :-
-    memberchk(Atom, Atoms),
-    all_members(Rest, Atoms).
+% Evaluate each step-mode hidden neuron from its weighted active inputs.
+fired_hidden(Neurons, Edges, Recurrent, Current, Hidden) :-
+    findall(Id,
+            ( member(neuron(hidden(Id), hidden, step, Threshold), Neurons),
+              weighted_input_sum(hidden(Id), Edges, Recurrent, Current, Sum),
+              Sum > Threshold
+            ),
+            Hidden).
 
-%! no_members(+Items, +Set) is semidet.
+%! weighted_input_sum(+Neuron, +Edges, +Recurrent, +Current, -Sum) is det.
 %
-% Succeed when none of the items occurs in the supplied set.
-no_members([], _).
-no_members([Atom|Rest], Atoms) :-
-    \+ memberchk(Atom, Atoms),
-    no_members(Rest, Atoms).
+% Sum weights from input neurons whose recurrent source is active.
+weighted_input_sum(Neuron, Edges, Recurrent, Current, Sum) :-
+    findall(Weight,
+            ( member(edge(in(Atom), Neuron, Weight), Edges),
+              memberchk(recurrent(out(Atom), in(Atom)), Recurrent),
+              memberchk(Atom, Current)
+            ),
+            Weights),
+    sum_weights(Weights, 0, Sum).
+
+%! output_fires(+Atom, +Neurons, +Edges, +Hidden) is semidet.
+%
+% Evaluate an output neuron's weighted incoming hidden activations.
+output_fires(Atom, Neurons, Edges, Hidden) :-
+    memberchk(neuron(out(Atom), output, step, Threshold), Neurons),
+    findall(Weight,
+            ( member(edge(hidden(Id), out(Atom), Weight), Edges),
+              memberchk(Id, Hidden)
+            ),
+            Weights),
+    sum_weights(Weights, 0, Sum),
+    Sum > Threshold.
+
+%! sum_weights(+Weights, +Total, -Sum) is det.
+%
+% Sum a list of neuron edge weights.
+sum_weights([], Total, Total).
+sum_weights([Weight|Rest], Total0, Sum) :-
+    Total is Total0 + Weight,
+    sum_weights(Rest, Total, Sum).
