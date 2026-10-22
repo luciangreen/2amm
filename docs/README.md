@@ -105,7 +105,8 @@ whether every stratum reached a fixpoint.
   global grounding universe.
 - A configurable maximum Herbrand-base size (default 10,000).
 - A step-mode Prolog network with ground queries, pattern queries, and
-  fixpoint step reporting. The default per-stratum limit is base size + 1;
+  fixpoint step reporting, evaluated from its weighted neuron, edge, and
+  recurrent-link facts. The default per-stratum limit is base size + 1;
   unsuccessful query runs raise `error(no_fixpoint(Steps), _)`.
 - Inspectable input, hidden, and output neuron facts, weighted edges,
   recurrent links, and source traces mapping input/output neurons to clauses
@@ -181,10 +182,9 @@ converter. The current finite universe is the union of source constants and
 values from `domain/2` and `range/3`; type labels are not used to constrain
 individual variables or predicate positions. Nested compound/list terms,
 cut, dynamic database operations, I/O, `findall`/`bagof`/`setof`, and unsupported
-system built-ins are rejected. Only exact step mode is implemented. Although
-translation emits inspectable neuron, edge, and recurrent-link facts, runtime
-evaluation computes stratified least-model closure from retained symbolic
-ground rules rather than evaluating those weighted facts.
+system built-ins are rejected. Only exact step mode is implemented. The runtime
+evaluates the emitted step-mode weights and thresholds; symbolic ground rules
+remain in the module for stratum metadata, verification, and extraction.
 
 Trace facts cover input and output neurons for each ground clause in which their
 atom appears, and hidden neurons for their corresponding ground clause. Clause
@@ -225,6 +225,18 @@ generation; the `flies`, `even_odd`, and `reach` examples exercise stratified
 negation, bounded mutual recursion, and cyclic recursive closure respectively.
 The `xor` example exercises stratified negation and verifies all four input
 pairs through the finite least model.
+
+The automated tests are in `test/test_prolog2ann.pl`. These named tests map the
+implemented features to the checks run by the command above:
+
+| Feature area | Tests |
+| --- | --- |
+| Parsing, unsupported syntax, and stratification | `parse_example`, `reject_cut_with_source_line`, `reject_non_stratified_negation`, `reject_win_acceptance_example` |
+| Finite grounding, integer domains, and limits | `grounding_limit`, `finite_domain_required_for_variables`, `mutual_recursion_with_integer_range`, `bounded_arithmetic_and_comparisons` |
+| Neurons, weighted execution, and source traces | `translation_includes_weighted_neurons`, `weighted_network_facts_drive_runtime`, `neuron_traceability_covers_all_layers` |
+| Queries, recursion, and negation | `stratified_negation_and_query`, `xor_acceptance_and_equivalence`, `cyclic_reachability_reaches_fixpoint` |
+| Emission, JSON, and step limits | `convert_file_creates_output`, `export_json_network_representation`, `convert_file_creates_json_output`, `configured_runtime_step_limit` |
+| Verification, extraction, and broad equivalence | `verify_equivalent_emitted_network`, `verify_reports_model_difference`, `extract_round_trip_ancestor`, `extract_round_trip_stratified_negation`, `extract_from_generated_module`, `acceptance_examples_verify_least_models`, `randomized_programs_verify_least_models` |
 
 The GitHub Actions workflow runs this same PlUnit command on Ubuntu after
 installing the available SWI-Prolog package. You can run the suite locally with

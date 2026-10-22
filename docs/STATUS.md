@@ -13,7 +13,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | FR-6 | Partial — emits a module independent of source, with a generic package runtime dependency |
 | FR-7 | Implemented in emitted modules for ground goals |
 | FR-8 | Implemented in emitted modules for matching active atoms |
-| FR-9 | Implemented for the supported subset — fixpoint evaluation, default and configurable per-network step limits (`--step-limit`), and source/network least-model comparison with `ann_verify/3` |
+| FR-9 | Implemented for the supported subset — weighted-neuron fixpoint evaluation, default and configurable per-network step limits (`--step-limit`), and source/network least-model comparison with `ann_verify/3` |
 | FR-10 | Not implemented — sigmoid backpropagation |
 | FR-11 | Implemented for step-mode `network/7` terms and loaded generated modules; extracts ground rules and supports round-trip conversion |
 | FR-12 | Implemented for the step-mode representation — traces input, hidden, and output neurons to represented ground clauses, with source file and line |
@@ -24,12 +24,9 @@ not yet satisfy the v1 acceptance criteria in full.
 1. Finish typed-domain inference and variable binding/range semantics; the
    current grounding universe is global. Implement bounded lists/compound terms
    and complete the required unsupported-syntax diagnostics.
-2. Replace symbolic ground-rule execution with evaluation of the explicit
-   weighted input/hidden/output neuron model and recurrent links. The JSON
-   reports the network facts but does not implement this runtime change.
-3. Verify the sigmoid/CILP formula against the cited paper before implementing
+2. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Add sigmoid/training tests after implementing M4 and finish release/pack
+3. Add sigmoid/training tests after implementing M4 and finish release/pack
    metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
@@ -51,12 +48,14 @@ does not converge within that limit reports `Reached = false`; `ann_query/2`
 and `ann_query_all/2` raise `error(no_fixpoint(Steps), _)` for such a run.
 
 The PlUnit suite also covers parser diagnostics, grounding limits, weighted
-translation, input/hidden/output source traces, negation, XOR, mutual recursion
-over an integer range, JSON structure, step limits, equivalence/mismatch
-reporting, and extraction round trips for positive recursion, stratified
-negation, generated modules, and cyclic reachability. The cyclic example checks
-recursive self-reachability and that fixpoint evaluation completes within the
-default Herbrand-base-derived bound.
+translation and execution, input/hidden/output source traces, negation, XOR,
+mutual recursion over an integer range, JSON structure, step limits,
+equivalence/mismatch reporting, and extraction round trips for positive
+recursion, stratified negation, generated modules, and cyclic reachability. The
+`weighted_network_facts_drive_runtime` regression checks that a zero-weight edge
+changes the query result even when the retained symbolic rule would derive that
+atom. The cyclic example checks recursive self-reachability and that fixpoint
+evaluation completes within the default Herbrand-base-derived bound.
 Use `swipl -q -s test/run_tests.pl` to run all tests. JSON export is step-mode
 inspection output; sigmoid training is not yet implemented. The suite now
 includes 200 deterministic randomized least-model equivalence checks.
@@ -77,13 +76,12 @@ copy/paste CLI commands for the supported examples.
 
 These checks extend the current regression coverage; they do not complete the
 remaining v1 requirements below. The main implementation milestones still
-outstanding are typed finite domains and bounded compound terms, execution of
-the explicit weighted network, verified sigmoid/tanh support and training, and
-release readiness.
+outstanding are typed finite domains and bounded compound terms, verified
+sigmoid/tanh support and training, and release readiness.
 
-Pipeline and runtime helper predicates now have PlDoc summaries. This improves
-code-level documentation but does not change runtime behavior or close the
-typed-domain, compound-term, weighted-runtime, or sigmoid/training gaps.
+Pipeline and runtime helper predicates have PlDoc summaries. The runtime now
+evaluates the emitted weighted neuron and recurrent-link facts. Typed-domain and
+compound-term support, sigmoid/training, and release readiness remain open.
 
 ## Latest implementation update
 
@@ -91,12 +89,11 @@ Step-mode program extraction is now available through `ann_extract/2` for
 in-memory `network/7` terms and loaded generated modules. It returns ground
 clauses from the network rule facts and is tested by re-converting the result,
 including a stratified-negation case. This is not recovery of original source
-text and does not change the symbolic ground-rule runtime.
+text; runtime query evaluation uses the weighted neuron facts.
 
 The finite-domain XOR acceptance example is covered by an automated test for
 the four truth-table outcomes and least-model equivalence. This adds an
-acceptance example; it does not add sigmoid-mode support or weighted-neuron
-execution.
+acceptance example; it does not add sigmoid-mode support or training.
 
 Source trace facts now cover each input and output neuron for every ground
 clause where its atom occurs, as well as each hidden neuron for its clause.
@@ -108,8 +105,9 @@ generated finite Datalog programs. The generator stays within six unary
 predicates and five constants and includes recursion and stratified negation;
 each generated module is compared against the source program's least model.
 The Ubuntu GitHub Actions workflow now installs SWI-Prolog and runs the same
-PlUnit command documented above. Pipeline and runtime helpers now have PlDoc
-summaries; this code-level documentation work does not replace the still-pending
-typed-domain, weighted-runtime, sigmoid, training, or release work listed
-above. The tests also directly cover bounded arithmetic and integer
+PlUnit command documented above. Pipeline and runtime helpers have PlDoc
+summaries. Runtime queries now use the weighted network representation, with
+regression coverage independent of the retained rules. This does not replace
+the still-pending typed-domain, compound-term, sigmoid, training, or release
+work listed above. The tests also directly cover bounded arithmetic and integer
 comparisons; they do not claim typed variable domains or compound-term support.
