@@ -12,6 +12,9 @@ parse_file(File, Clauses) :-
         read_clauses(Stream, File, Clauses),
         close(Stream)).
 
+%! read_clauses(+Stream, +File, -Clauses) is det.
+%
+% Read and validate clauses, preserving their variable names and source lines.
 read_clauses(Stream, File, Clauses) :-
     read_term(Stream, Term,
               [variable_names(Names), syntax_errors(error),
@@ -24,6 +27,9 @@ read_clauses(Stream, File, Clauses) :-
         read_clauses(Stream, File, Rest)
     ).
 
+%! validate_clause(+Term, +File, +Line, -Head, -Body) is det.
+%
+% Split a source term into a supported head and body and validate both.
 validate_clause((Head :- Body), File, Line, Head, Body) :-
     !,
     validate_goal(Body, File, Line),
@@ -31,6 +37,9 @@ validate_clause((Head :- Body), File, Line, Head, Body) :-
 validate_clause(Head, File, Line, Head, true) :-
     validate_head(Head, File, Line).
 
+%! validate_head(+Head, +File, +Line) is det.
+%
+% Reject heads that are not ordinary predicates with simple arguments.
 validate_head(Head, File, Line) :-
     (   callable(Head),
         Head \= (_ :- _),
@@ -41,6 +50,10 @@ validate_head(Head, File, Line) :-
     ;   throw(error(unsupported_construct(Head), file(File, Line)))
     ).
 
+%! validate_goal(+Goal, +File, +Line) is det.
+%
+% Recursively validate conjunctions, disjunctions, negation, and supported
+% predicate or built-in goals; throw a source-located error otherwise.
 validate_goal((A, B), File, Line) :-
     !,
     validate_goal(A, File, Line),
@@ -75,9 +88,15 @@ validate_goal(Goal, File, Line) :-
 validate_goal(Goal, File, Line) :-
     throw(error(unsupported_construct(Goal), file(File, Line))).
 
+%! reserved_head(+Name, +Arity) is semidet.
+%
+% True when a predicate indicator is reserved for Prolog syntax.
 reserved_head(Name, Arity) :-
     memberchk(Name/Arity, [(:-)/1, (:-)/2, (!)/0]).
 
+%! unsupported_goal(+Name, +Arity, -Construct) is semidet.
+%
+% Classify explicitly unsupported control, database, collection, and I/O goals.
 unsupported_goal(!, 0, !) :- !.
 unsupported_goal(assert, _, assert) :- !.
 unsupported_goal(asserta, _, assert) :- !.
@@ -91,6 +110,9 @@ unsupported_goal(Name, _, io) :-
     memberchk(Name, [write, writeln, read, read_term, open, close, format,
                      see, tell, shell, consult, ensure_loaded]).
 
+%! supported_builtin(+Name, +Arity) is semidet.
+%
+% Enumerate built-ins that the grounding stage can safely pre-evaluate.
 supported_builtin(true, 0).
 supported_builtin(fail, 0).
 supported_builtin(false, 0).
@@ -104,10 +126,16 @@ supported_builtin((=), 2).
 supported_builtin((\=), 2).
 supported_builtin(is, 2).
 
+%! simple_predicate_arguments(+Term) is semidet.
+%
+% True when each argument is a variable or atomic value.
 simple_predicate_arguments(Term) :-
     Term =.. [_|Arguments],
     maplist(simple_argument, Arguments).
 
+%! simple_argument(+Argument) is semidet.
+%
+% Accept one variable or atomic predicate argument.
 simple_argument(Argument) :-
     var(Argument),
     !.

@@ -42,6 +42,9 @@ run_network(Module, Atoms, Steps, Reached) :-
     run_strata(Strata, Module, [], Base, Limit, Model, Steps, Reached),
     Atoms = Model.
 
+%! module_facts(+Module, ?Template, +Goal, -Facts) is det.
+%
+% Collect facts from a generated module, treating an absent predicate as empty.
 module_facts(Module, Template, Goal, Facts) :-
     functor(Goal, Name, Arity),
     (   current_predicate(Module:Name/Arity)
@@ -49,6 +52,9 @@ module_facts(Module, Template, Goal, Facts) :-
     ;   Facts = []
     ).
 
+%! module_step_limit(+Module, +Base, -Limit) is det.
+%
+% Use the generated module's configured limit or derive one from its atom base.
 module_step_limit(Module, Base, Limit) :-
     (   current_predicate(Module:network_step_limit/1),
         Module:network_step_limit(Configured)
@@ -57,6 +63,10 @@ module_step_limit(Module, Base, Limit) :-
         Limit is BaseSize + 1
     ).
 
+%! run_strata(+Strata, +Module, +Lower, +Base, +Limit, -Model,
+%!            -Steps, -Reached) is det.
+%
+% Close each stratum in order and stop if a configured limit is exhausted.
 run_strata([], _, Model, _, _, Model, 0, true).
 run_strata([Stratum|Rest], Module, Lower, Base, Limit, Model, Steps, Reached) :-
     close_stratum(Module, Stratum, Lower, Base, Limit, Closed, Used, Reached0),
@@ -68,9 +78,17 @@ run_strata([Stratum|Rest], Module, Lower, Base, Limit, Model, Steps, Reached) :-
         Reached = false
     ).
 
+%! close_stratum(+Module, +Stratum, +Current, +Base, +Limit,
+%!               -Model, -Steps, -Reached) is det.
+%
+% Compute one stratum's closure using the lower-stratum model as input.
 close_stratum(Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-
     close_round(1, Module, Stratum, Current, Base, Limit, Model, Steps, Reached).
 
+%! close_round(+Step, +Module, +Stratum, +Current, +Base, +Limit,
+%!             -Model, -Steps, -Reached) is det.
+%
+% Apply one immediate-consequence round and detect stability or limit exhaustion.
 close_round(Step, Module, Stratum, Current, Base, Limit, Model, Steps, Reached) :-
     applicable_heads(Module, Stratum, Current, Heads),
     append(Current, Heads, Combined),
@@ -88,6 +106,9 @@ close_round(Step, Module, Stratum, Current, Base, Limit, Model, Steps, Reached) 
                     Model, Steps, Reached)
     ).
 
+%! applicable_heads(+Module, +Stratum, +Current, -Heads) is det.
+%
+% Collect heads whose positive and negative body atoms match the current model.
 applicable_heads(Module, Stratum, Current, Heads) :-
     findall(Head,
             ( Module:network_rule(Head, Positive, Negative, Stratum),
@@ -97,11 +118,17 @@ applicable_heads(Module, Stratum, Current, Heads) :-
             Heads0),
     sort(Heads0, Heads).
 
+%! all_members(+Items, +Set) is semidet.
+%
+% Succeed when every item occurs in the supplied set.
 all_members([], _).
 all_members([Atom|Rest], Atoms) :-
     memberchk(Atom, Atoms),
     all_members(Rest, Atoms).
 
+%! no_members(+Items, +Set) is semidet.
+%
+% Succeed when none of the items occurs in the supplied set.
 no_members([], _).
 no_members([Atom|Rest], Atoms) :-
     \+ memberchk(Atom, Atoms),

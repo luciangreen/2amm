@@ -26,12 +26,21 @@ export_json(File,
         ),
         close(Stream)).
 
+%! atom_json(+Atom, -String) is det.
+%
+% Convert an atom to its JSON string value.
 atom_json(Term, String) :-
     atom_string(Term, String).
 
+%! term_json(+Term, -String) is det.
+%
+% Serialize a Prolog term as quoted, stable text for JSON output.
 term_json(Term, String) :-
     term_string(Term, String, [quoted(true), numbervars(true)]).
 
+%! neuron_json(+Neuron, -Dict) is det.
+%
+% Convert a neuron record to the documented JSON object shape.
 neuron_json(neuron(Id, Layer, Activation, Threshold),
             _{id: IdString,
               layer: LayerString,
@@ -41,16 +50,25 @@ neuron_json(neuron(Id, Layer, Activation, Threshold),
     atom_json(Layer, LayerString),
     atom_json(Activation, ActivationString).
 
+%! edge_json(+Edge, -Dict) is det.
+%
+% Convert a weighted edge record to JSON.
 edge_json(edge(From, To, Weight),
           _{from: FromString, to: ToString, weight: Weight}) :-
     term_json(From, FromString),
     term_json(To, ToString).
 
+%! recurrent_json(+Link, -Dict) is det.
+%
+% Convert a recurrent link record to JSON.
 recurrent_json(recurrent(From, To),
                _{from: FromString, to: ToString}) :-
     term_json(From, FromString),
     term_json(To, ToString).
 
+%! trace_json(+Trace, -Dict) is det.
+%
+% Convert a neuron-to-source trace record to JSON.
 trace_json(trace(Neuron, Clause, File, Line),
            _{neuron: NeuronString,
              clause: Clause,
