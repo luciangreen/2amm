@@ -139,6 +139,37 @@ and weight), `recurrent` links, and source `traces`. The library also exports
 `convert_file/3` or `convert_clauses/3`. JSON currently describes the
 step-mode representation; it does not imply support for sigmoid training.
 
+For example, exporting the network for the single fact `p(a).` produces this
+shape:
+
+```json
+{
+  "mode": "step",
+  "atoms": ["p(a)"],
+  "neurons": [
+    {"id": "in(p(a))", "layer": "input", "activation": "linear", "threshold": 0.0},
+    {"id": "out(p(a))", "layer": "output", "activation": "step", "threshold": 0.5},
+    {"id": "hidden(1)", "layer": "hidden", "activation": "step", "threshold": -0.5}
+  ],
+  "edges": [
+    {"from": "hidden(1)", "to": "out(p(a))", "weight": 1.0}
+  ],
+  "recurrent": [
+    {"from": "out(p(a))", "to": "in(p(a))"}
+  ],
+  "traces": [
+    {"neuron": "hidden(1)", "clause": 1, "file": "<memory>", "line": 1},
+    {"neuron": "in(p(a))", "clause": 1, "file": "<memory>", "line": 1},
+    {"neuron": "out(p(a))", "clause": 1, "file": "<memory>", "line": 1}
+  ]
+}
+```
+
+Atoms and neuron/edge identifiers are quoted Prolog term strings; numeric
+weights, thresholds, clause IDs, and source lines are JSON numbers. A trace's
+`clause` identifies a grounded network clause (and the corresponding hidden
+neuron), not necessarily the original variable-bearing source clause.
+
 Verification uses the finite universe represented by the network's atom base,
 combined with constants in the source program. The library API does not accept
 a separate domain file for verification.
