@@ -20,7 +20,7 @@ emit_network(File, Module,
     setup_call_cleanup(
         open(File, write, Stream, [encoding(utf8)]),
         emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
-                   Neurons, Edges, Recurrent, StepLimit),
+                  Neurons, Edges, Recurrent, StepLimit),
         close(Stream)).
 
 emit_terms(Stream, Module, Atoms, Rules, Strata, Traces,
@@ -46,7 +46,8 @@ step_limit_option(Options, StepLimit) :-
     (   member(step_limit(Value), Options)
     ->  must_be(positive_integer, Value),
         StepLimit = Value
-    ;   StepLimit = none
+    ;
+    StepLimit = none
     ).
 
 emit_step_limit(_, none) :- !.

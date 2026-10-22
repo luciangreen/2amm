@@ -268,6 +268,7 @@ test(configured_runtime_step_limit) :-
           catch(test_generated_limited:ann_query(ancestor(ann, dee), _),
                 Error,
                 true),
+          assertion(nonvar(Error)),
           assertion(Error = error(no_fixpoint(1), _))
         ),
         ( unload_file(Output),

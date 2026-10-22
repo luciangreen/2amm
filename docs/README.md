@@ -71,10 +71,24 @@ negative cases exercised by the PlUnit suite: `win.pl` must report its
 non-stratified predicate cycle, and `cut.pl` must report `unsupported_construct(!)`
 with a source line.
 
+The converter accepts `--limit N` to cap the grounded Herbrand base (default
+10,000 atoms) and `--steps N` to set the maximum closure rounds for each
+stratum in the emitted runtime (default: base size + 1). Both values must be
+positive integers. For example, use `--steps 20` before `--out` to generate a
+network with a per-stratum limit of 20. If a stratum has not reached a fixpoint
+within its limit, `ann_run/3` returns `Reached = false` and query predicates
+raise `error(no_fixpoint(Steps), _)`.
+
+The CLI also supports `--module NAME` to choose the generated module name.
+`convert` supports only `--mode step`; other modes are rejected.
+
 For an independent installation of an emitted module, install `prolog2ann` as
 a SWI-Prolog pack or include the package's `prolog/` directory on SWI-Prolog's
 library path. Generated modules export `ann_query/2`, `ann_query_all/2`, and
-`ann_run/3`.
+`ann_run/3`. `ann_query/2` requires a ground goal and returns true or false;
+`ann_query_all/2` accepts a pattern and returns its active ground instances in
+standard order; `ann_run/3` returns the active atoms, number of rounds, and
+whether every stratum reached a fixpoint.
 
 ## Supported behavior
 
@@ -139,6 +153,12 @@ be passed to `convert_clauses/3` for round-trip checks. Extraction cannot recove
 the original variables, clause order, comments, source locations, domain
 declarations, or source formatting. `ann_extract(GeneratedModule, Clauses)` also
 accepts a loaded generated step-mode module.
+
+The library API exports `convert_file/3`, `convert_clauses/3`, and the
+`ann_verify/3` placeholder. `convert_file/3` accepts `domain(File)`, `out(File)`,
+`module(Name)`, `mode(step)`, `limit(MaxAtoms)`, and `step_limit(MaxRounds)`.
+`convert_clauses/3` accepts `domain_values(Values)`, `mode(step)`, and
+`limit(MaxAtoms)`. The limits must be positive integers.
 
 Example bounded input:
 
@@ -210,7 +230,7 @@ that order. The current extraction API can be exercised from the Prolog top
 level after loading `prolog/prolog2ann.pl` and generating or converting a
 network: call `prolog2ann:ann_extract(Network, Clauses)` and then
 `prolog2ann:convert_clauses(Clauses, [], RoundTripNetwork)`.
-Sigmoid training remains to be implemented. Randomized equivalence is covered
+sigmoid training remains to be implemented. Randomized equivalence is covered
 by the deterministic 200-program property test above. See
 [`STATUS.md`](STATUS.md) for the current requirement-by-requirement status and
 the remaining milestones.
