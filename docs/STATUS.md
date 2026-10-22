@@ -29,8 +29,8 @@ not yet satisfy the v1 acceptance criteria in full.
    reports the network facts but does not implement this runtime change.
 3. Verify the sigmoid/CILP formula against the cited paper before implementing
    sigmoid/tanh modes and training; record the exact assumptions.
-4. Add sigmoid/training tests after implementing M4. Add CI, complete PlDoc
-   coverage, and release/pack metadata checks before claiming M1–M6 complete.
+4. Add sigmoid/training tests after implementing M4, complete PlDoc coverage,
+   and finish release/pack metadata checks before claiming M1–M6 complete.
 
 ## Tests and examples to run now
 
@@ -103,6 +103,9 @@ The test suite now performs deterministic property-style checking of 200
 generated finite Datalog programs. The generator stays within six unary
 predicates and five constants and includes recursion and stratified negation;
 each generated module is compared against the source program's least model.
-This completes the random-program count in the current acceptance criteria,
-but does not replace the still-pending typed-domain, weighted-runtime, sigmoid,
-training, CI, or release work listed above.
+The Ubuntu GitHub Actions workflow now installs SWI-Prolog and runs the same
+PlUnit command documented above. This completes the initial CI check but does
+not replace the still-pending typed-domain, weighted-runtime, sigmoid, training,
+PlDoc, or release work listed above. The tests also directly cover bounded
+arithmetic and integer comparisons; they do not claim typed variable domains or
+compound-term support.

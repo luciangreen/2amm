@@ -153,6 +153,25 @@ test(mutual_recursion_with_integer_range) :-
         ),
         ( unload_file(Path), delete_file(Path) )).
 
+test(bounded_arithmetic_and_comparisons) :-
+    prolog2ann:convert_clauses(
+        [ (calculated(X) :- (X is 2 + 2, X =< 4)),
+          (eligible(Y) :- (Y < 3, Y =\= 1))
+        ],
+        [domain_values([0, 1, 2, 3, 4])],
+        Network),
+    test_prolog2ann:temporary_network(Network, Module, Path),
+    setup_call_cleanup(
+        true,
+        ( prolog2ann_runtime:ann_query(Module, calculated(4), true),
+          prolog2ann_runtime:ann_query(Module, calculated(3), false),
+          prolog2ann_runtime:ann_query(Module, eligible(0), true),
+          prolog2ann_runtime:ann_query(Module, eligible(1), false),
+          prolog2ann_runtime:ann_query(Module, eligible(2), true),
+          prolog2ann_runtime:ann_query(Module, eligible(4), false)
+        ),
+        ( unload_file(Path), delete_file(Path) )).
+
 test(cyclic_reachability_reaches_fixpoint) :-
     test_prolog2ann:example(reach, File),
     prolog2ann:convert_file(File, [], Network),
