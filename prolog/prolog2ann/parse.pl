@@ -77,7 +77,7 @@ validate_goal(Goal, File, Line) :-
     (   unsupported_goal(Name, Arity, Construct)
     ->  throw(error(unsupported_construct(Construct), file(File, Line)))
     ;   supported_builtin(Name, Arity)
-    ->  true
+    ->  validate_builtin_goal(Goal, File, Line)
     ;   predicate_property(system:Goal, built_in)
     ->  throw(error(unsupported_construct(Goal), file(File, Line)))
     ;   simple_predicate_arguments(Goal)
@@ -125,6 +125,64 @@ supported_builtin((=\=), 2).
 supported_builtin((=), 2).
 supported_builtin((\=), 2).
 supported_builtin(is, 2).
+
+%! validate_builtin_goal(+Goal, +File, +Line) is det.
+%
+% Reject built-in argument shapes that grounding cannot evaluate.
+validate_builtin_goal(Goal, File, Line) :-
+    (   valid_builtin_goal(Goal)
+    ->  true
+    ;   throw(error(unsupported_construct(Goal), file(File, Line)))
+    ).
+
+%! valid_builtin_goal(+Goal) is semidet.
+%
+% Check that supported comparisons and arithmetic use supported terms.
+valid_builtin_goal(Goal) :-
+    (   Goal = (Left is Expression)
+    ->  (var(Left) ; integer(Left)),
+        integer_expression_term(Expression)
+    ;   Goal = (Left < Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left > Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left =< Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left >= Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left =:= Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left =\= Right)
+    ->  integer_expression_term(Left),
+        integer_expression_term(Right)
+    ;   Goal = (Left = Right)
+    ->  simple_argument(Left),
+        simple_argument(Right)
+    ;   Goal = (Left \= Right)
+    ->  simple_argument(Left),
+        simple_argument(Right)
+    ;   memberchk(Goal, [true, fail, false])
+    ).
+
+%! integer_expression_term(+Expression) is semidet.
+%
+% Accept variables, integers, and the arithmetic operators evaluated at grounding.
+integer_expression_term(Expression) :-
+    (   var(Expression)
+    ->  true
+    ;   integer(Expression)
+    ->  true
+    ;   compound(Expression),
+        Expression =.. [Operator, Left, Right],
+        memberchk(Operator, [+, -, *, //, mod, rem]),
+        integer_expression_term(Left),
+        integer_expression_term(Right)
+    ).
 
 %! simple_predicate_arguments(+Term) is semidet.
 %

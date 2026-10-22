@@ -33,6 +33,20 @@ test(reject_cut_with_source_line) :-
     assertion(nonvar(Error)),
     assertion(Error = error(unsupported_construct(!), file(File, 1))).
 
+test(reject_unsupported_arithmetic_with_source_line) :-
+    tmp_file(prolog2ann_arithmetic, File),
+    setup_call_cleanup(
+        open(File, write, Stream, [encoding(utf8)]),
+        ( write(Stream, 'p(X) :- X is foo(1).'), nl(Stream) ),
+        close(Stream)),
+    setup_call_cleanup(
+        true,
+        ( catch(prolog2ann_parse:parse_file(File, _), Error, true),
+          assertion(nonvar(Error)),
+          assertion(Error = error(unsupported_construct(_), file(File, 1)))
+        ),
+        delete_file(File)).
+
 test(reject_non_stratified_negation) :-
     Parsed = [ clause(p(X), \+ q(X), [], sample, 1),
                clause(q(X), p(X), [], sample, 2)

@@ -6,7 +6,7 @@ not yet satisfy the v1 acceptance criteria in full.
 | Requirement | Status |
 | --- | --- |
 | FR-1 | Partial — `.pl` source and optional `domain/2`/`range/3` files; currently one global universe |
-| FR-2 | Partial — cut, dynamic database, I/O, collection predicates, unsupported system calls, and nested terms are rejected |
+| FR-2 | Partial — cut, dynamic database, I/O, collection predicates, unsupported system calls, nested terms, and unsupported arithmetic expressions are rejected with source locations |
 | FR-3 | Implemented for predicate dependency stratification; reports predicate indicators in a negative cycle |
 | FR-4 | Implemented — counts grounded head/body atoms; default limit 10,000 |
 | FR-5 | Partial — exact step mode only |
@@ -80,8 +80,11 @@ outstanding are typed finite domains and bounded compound terms, verified
 sigmoid/tanh support and training, and release readiness.
 
 Pipeline and runtime helper predicates have PlDoc summaries. The runtime now
-evaluates the emitted weighted neuron and recurrent-link facts. Typed-domain and
-compound-term support, sigmoid/training, and release readiness remain open.
+evaluates the emitted weighted neuron and recurrent-link facts. Parsing validates
+the supported integer arithmetic operators (`+`, `-`, `*`, `//`, `mod`, `rem`)
+so unsupported arithmetic is diagnosed at its source line instead of silently
+discarding grounded clauses. Typed-domain and compound-term support,
+sigmoid/training, and release readiness remain open.
 
 ## Latest implementation update
 

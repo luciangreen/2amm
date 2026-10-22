@@ -100,6 +100,9 @@ whether every stratum reached a fixpoint.
   reported with the involved predicate indicators.
 - Finite integer domains declared by `range(Name, Low, High).`; supported
   comparisons and bounded `is/2` arithmetic are evaluated before translation.
+  Integer expressions accept variables, integer literals, and `+`, `-`, `*`,
+  `//`, `mod`, and `rem`; unsupported arithmetic expressions are rejected with
+  a source-located `unsupported_construct` error.
 - Optional domain declarations in the form
   `domain(Type, [constant, ...]).`; all declared values currently share one
   global grounding universe.
@@ -211,9 +214,11 @@ domain and source constants.
 This is an in-progress subset of `pr1.txt`, not the v1 acceptance-complete
 converter. The current finite universe is the union of source constants and
 values from `domain/2` and `range/3`; type labels are not used to constrain
-individual variables or predicate positions. Nested compound/list terms,
-cut, dynamic database operations, I/O, `findall`/`bagof`/`setof`, and unsupported
-system built-ins are rejected. Only exact step mode is implemented. The runtime
+individual variables or predicate positions. Arithmetic syntax outside the
+supported integer-expression operators is rejected during parsing. Nested
+compound/list terms, cut, dynamic database operations, I/O,
+`findall`/`bagof`/`setof`, and unsupported system built-ins are rejected. Only
+exact step mode is implemented. The runtime
 evaluates the emitted step-mode weights and thresholds; symbolic ground rules
 remain in the module for stratum metadata, verification, and extraction.
 
@@ -236,7 +241,8 @@ Run the PlUnit suite from the repository root:
 swipl -q -s test/run_tests.pl
 ```
 
-The current suite exercises parsing, cut rejection with a source line,
+The current suite exercises parsing, cut and unsupported arithmetic rejection
+with source lines,
 negative-cycle detection, the grounding-size limit, stratified negation,
 mutual recursion over a bounded integer range, bounded `is/2` arithmetic and
 integer comparisons, cyclic reachability through a fixpoint (including
@@ -262,7 +268,7 @@ implemented features to the checks run by the command above:
 
 | Feature area | Tests |
 | --- | --- |
-| Parsing, unsupported syntax, and stratification | `parse_example`, `reject_cut_with_source_line`, `reject_non_stratified_negation`, `reject_win_acceptance_example` |
+| Parsing, unsupported syntax, and stratification | `parse_example`, `reject_cut_with_source_line`, `reject_unsupported_arithmetic_with_source_line`, `reject_non_stratified_negation`, `reject_win_acceptance_example` |
 | Finite grounding, integer domains, and limits | `grounding_limit`, `finite_domain_required_for_variables`, `mutual_recursion_with_integer_range`, `bounded_arithmetic_and_comparisons` |
 | Neurons, weighted execution, and source traces | `translation_includes_weighted_neurons`, `weighted_network_facts_drive_runtime`, `neuron_traceability_covers_all_layers` |
 | Queries, recursion, and negation | `stratified_negation_and_query`, `xor_acceptance_and_equivalence`, `cyclic_reachability_reaches_fixpoint` |
