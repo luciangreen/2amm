@@ -14,6 +14,11 @@ Nested compound and list arguments are rejected rather than partially
 grounded. The v1 brief allows those terms only with a configured depth/length
 bound, and no such bound is implemented yet.
 
+Supported arithmetic expressions are limited to integer literals, variables,
+and `+`, `-`, `*`, `//`, `mod`, and `rem`. Other expression shapes are rejected
+during parsing with the source location instead of being treated as a failed
+grounding assignment.
+
 ## Verification universe
 
 `ann_verify/3` does not take a domain file. It derives values from the network's
